@@ -7,16 +7,16 @@ for `notes/06XX-OpenMP_draft.md`; WA1 mandates OpenMP (`WA1_26-27.pdf p.2`).
 
 | constructo / construct | source | what it does | when *not* to use it |
 |---|---|---|---|
-| `#pragma omp parallel` | 06XX:6 | create/join a team once | creating it *inside* the time loop pays the fork-join barrier every step |
-| `#pragma omp for schedule(...)` | 06XX:8 | split loop iterations | loops where iterations *write to shared state* (races), dependent iterations |
-| `reduction(op:var)` | 06XX:16 | private partial + combine at end | reductions whose order changes FP results must be justified in the report |
-| `#pragma omp atomic` | 06XX:15 | one memory update becomes atomic (cmpxchg spin) | many threads hammering the same address ⇒ serialized; use for rare updates only |
-| `#pragma omp critical [name]` | 06XX:14 | mutual exclusion, global lock | same serialization, worse; fine for init/QA paths |
-| `#pragma omp single` / `master` | 06XX:4 | one-thread regions | — |
-| `barrier` / `nowait` | 06XX:8 | join points within a region | — |
-| `#pragma omp task` (+`taskwait`) | 06XX:11–12 | DAG of tasks | probably unnecessary for 1 hot loop; cited for alternatives step (ii) |
+| `#pragma omp parallel` | 06XX:7 | create/join a team once | creating it *inside* the time loop pays the fork-join barrier every step |
+| `#pragma omp for schedule(...)` | 06XX:9 | split loop iterations | loops where iterations *write to shared state* (races), dependent iterations |
+| `reduction(op:var)` | 06XX:17 | private partial + combine at end | reductions whose order changes FP results must be justified in the report |
+| `#pragma omp atomic` | 06XX:16 | one memory update becomes atomic (cmpxchg spin) | many threads hammering the same address ⇒ serialized; use for rare updates only |
+| `#pragma omp critical [name]` | 06XX:15 | mutual exclusion, global lock | same serialization, worse; fine for init/QA paths |
+| `#pragma omp single` / `master` | 06XX:5 | one-thread regions | — |
+| `barrier` / `nowait` | 06XX:9 | join points within a region | — |
+| `#pragma omp task` (+`taskwait`) | 06XX:12–13 | DAG of tasks | probably unnecessary for 1 hot loop; cited for alternatives step (ii) |
 
-## Schedules (06XX:8–9) — how to *choose*
+## Schedules (06XX:9–10) — how to *choose*
 
 | schedule | distribution | overhead | balance | typical fit |
 |---|---|---|---|---|
@@ -25,7 +25,7 @@ for `notes/06XX-OpenMP_draft.md`; WA1 mandates OpenMP (`WA1_26-27.pdf p.2`).
 | `guided` | shrinking chunks | medium | good | irregular unknown-cost |
 | `auto` / dense default | runtime decides | — | — | comparing in experiments |
 
-## Data sharing (06XX:13) — rules of thumb
+## Data sharing (06XX:14) — rules of thumb
 
 - declared **inside** region ⇒ private; declared outside ⇒ shared.
 - loop-local temporaries (`rSqd`, `rij[3]`, `f`) must not be shared; for-loop
@@ -35,7 +35,7 @@ for `notes/06XX-OpenMP_draft.md`; WA1 mandates OpenMP (`WA1_26-27.pdf p.2`).
 
 ## Data-race hazards in the MD kernel (open questions — the design work is yours)
 
-Anchors: `src/MD.cpp`; equations in `../equations.md`; race anatomy 06XX:15.
+Anchors: `src/MD.cpp`; equations in `../equations.md`; race anatomy 06XX:16.
 
 1. **`computeAccelerations` (MD.cpp:537-558)**: one pair (i,j) updates
    `a[i][k] += f·rij` **and** `a[j][k] -= f·rij`. Any naive `parallel for
@@ -54,7 +54,7 @@ Anchors: `src/MD.cpp`; equations in `../equations.md`; race anatomy 06XX:15.
    half-kick, forces, second half-kick, walls): partially parallelizable
    per-particle (each thread owns i-range), but the **force** stage must
    complete before the second half-kick — the dependency chain above is
-   *control-free* but *data-dependent* (02CP:8-9 work/span).
+   *control-free* but *data-dependent* (02CP:9 work/span).
 4. **`gaussdist()` (MD.cpp:679)** uses `rand()` + `static` state ⇒ not
    thread-safe, only called from `initializeVelocities` (initialisation);
    state as-is: keep it out of parallel regions, or note in the report.

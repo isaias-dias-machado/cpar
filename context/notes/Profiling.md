@@ -14,6 +14,9 @@ Four-page cheat sheet; extremely terse, but everything in it is a command you
 will actually run. Adapted commands below are **for this repo's layout**
 (`src/MD.cpp` on the assignment code, not the slides' `MDseqClaudeAI.cpp`).
 
+⚠️ Every command here is for the **operator** to run inside a Deucalion
+allocation; the agent never connects (root `AGENTS.md`).
+
 ## Page map
 - p.1 context; GUI tools need X-forwarding (`ssh -X` or `-Y`).
 - p.2 get the course project onto Deucalion and open an ARM session:

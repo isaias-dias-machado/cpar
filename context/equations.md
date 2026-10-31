@@ -1,27 +1,27 @@
-# Equations — transcribed from `MD_simulations.pdf p.2–3`
+# Equations — transcribed from `MD_simulations.pdf p.3–4`
 
 ⚠️ These are **not present in the text layer** of the PDF (equations are
 embedded as images; `_text/MD_simulations.txt` gives garbage there). They were
 transcribed from rendered page images — read on 2026-10-30 with
-`pdftoppm -f 3 -l 3 -png MD_simulations.pdf`. To re-verify, re-render the
+`pdftoppm -f 3 -l 4 -png MD_simulations.pdf`. To re-verify, re-render the
 same pages and read them side-by-side with this file.
 
-## The three model equations (p.2–3)
+## The three model equations (p.3–4)
 
-1. **Lennard-Jones potential** *(p.2, native units)*
+1. **Lennard-Jones potential** *(p.3, native units)*
 
    $$\varphi(r) = 4\varepsilon\left[\left(\frac{\sigma}{r}\right)^{12} - \left(\frac{\sigma}{r}\right)^{6}\right]$$
 
-2. **Potential energy of the system** *(p.3, note j > i ⇒ each pair counted once)*
+2. **Potential energy of the system** *(p.4, note j > i ⇒ each pair counted once)*
 
    $$V(r_1,\dots,r_N) = \sum_i \sum_{j>i} \varphi\!\left(\lvert \mathbf{r}_i - \mathbf{r}_j \rvert\right)$$
    $$K(t) = \frac{1}{2}\sum_i m_i \, [\mathbf{v}_i(t)]^2$$
 
-3. **Force = gradient of the potential** *(p.3, magnitude of the radial form)*
+3. **Force = gradient of the potential** *(p.4, magnitude of the radial form)*
 
    $$\mathbf{F}(r) = -\nabla V(r) = 4\varepsilon \left( 12\,\frac{\sigma^{12}}{r^{13}} - 6\,\frac{\sigma^6}{r^7} \right) \hat{\mathbf{r}} \;=\; 24\varepsilon \left(2\frac{\sigma^{12}}{r^{13}} - \frac{\sigma^{6}}{r^{7}}\right)\hat{\mathbf{r}}$$
 
-4. **Velocity-Verlet time step** *(p.3 — the integration the code performs)*
+4. **Velocity-Verlet time step** *(p.4 — the integration the code performs)*
 
    $$\mathbf{r}(t+\Delta t) = \mathbf{r}(t) + \mathbf{v}(t)\,\Delta t + \tfrac{1}{2}\mathbf{a}(t)\Delta t^2$$
    $$\mathbf{v}(t+\tfrac{\Delta t}{2}) = \mathbf{v}(t) + \tfrac{1}{2}\,\mathbf{a}(t)\,\Delta t \quad\text{(half kick)}$$
@@ -35,7 +35,7 @@ same pages and read them side-by-side with this file.
    `psum += 2·m·|v|/dt`; the function returns `psum / (6·L²)` — 6 faces × face
    area = total wall area: dimensionally consistent [Pa].
    (*Replica/periodic boundary conditions* are mentioned on `MD_simulations
-   p.3` but *not* what this code does.)
+   p.4` but *not* what this code does.)
 
 ## Symbol map — slide ↔ `src/MD.cpp`
 

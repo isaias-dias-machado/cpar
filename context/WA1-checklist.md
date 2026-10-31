@@ -1,7 +1,8 @@
 # WA1 — Phase-1 checklist (from `WA1_26-27.pdf`, the normative file)
 
-Deadline **25-Nov-26, 23:59**, submitted via e-learning as a single `zip`
-that unzips to a dir named by the pair (`pgXXXXX_pgYYYYY/`).
+Deadline and weighting are stated once, in `notes/WA1_26-27.md` (§3, §5);
+submission is a single `zip` that unzips to a dir named by the pair
+(`pgXXXXX_pgYYYYY/`).
 
 ## The compliance list
 
@@ -30,7 +31,8 @@ that unzips to a dir named by the pair (`pgXXXXX_pgYYYYY/`).
 - [ ] **Reproducibility**: same input always (`inputdata.txt`: title, gas
       (`Ar`), T_init (100 K), ρ (35000 mol/m³)) — the program reads 4 lines
       from **stdin** (`scanf` sequence in `main`).
-- [ ] **No data races** (30% weight, "strong penalty" straight off the slide).
+- [ ] **No data races** ("strong penalty" straight off the slide; weights in
+      `notes/WA1_26-27.md` §3).
 - [ ] **Course weight**: WA1 is 10% of the course grade; the defence happens
       (`01CP:2`), the defence is the WA2 oral.
 

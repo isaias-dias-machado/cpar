@@ -27,11 +27,11 @@ VelocityVerlet(dt, iter, fp)
  └─ elastic walls: v flip + psum accumulation        (l.591-604)
 ```
 
-Dependency chain matches the work/span picture (02CP:8—9): the positions
+Dependency chain matches the work/span picture (02CP:9): the positions
 *must* be moved before the forces are recomputed, `V(t+dt)` requires the
 *updated* accelerations before the second half-kick ⇒ one `parallel for` region
 hosting the move stages atomically would still need an implicit barrier
-between force computation and half-kick (06XX:8's implicit barrier).
+between force computation and half-kick (06XX:9's implicit barrier).
 
 ## Input conversion (argon)
 

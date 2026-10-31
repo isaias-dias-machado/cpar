@@ -19,7 +19,7 @@ orientation, and figure-graphs:
 |---|---|---|
 | `WA1_26-27.pdf` | ✅ clean | normative; the most reliable file in the set |
 | `MD_simulations.pdf` | ⚠️ **lossy** | p.3 Lennard-Jones potential is an image; p.4 V(r), K(t), F(r) and the two Verlet update equations are images — see `equations.md` |
-| `01CP_Introduction.pdf` | ✅ clean prose | figure pages: p.4–5 (textbook covers), p.13 (scheme diagram) |
+| `01CP_Introduction.pdf` | ✅ clean prose | figure pages: p.4–8 (textbook covers), p.13 (scheme diagram) |
 | `02CP_parallelism.pdf` | ⚠️ noisy | p.9, p.11 `overlap-figure` (Stanford CS149 + McCool book excerpts superimposed); Amdahl formula drawn as vector art |
 | `03PC_MemHierarchy.pdf` | ⚠️ noisy | p.2 `overlap-figure`: the four scalability-profile graph labels — **ceiling, knee point, contention, coherence** — are legible only in the image |
 | `04CP_Acc_draft.pdf` | ⚠️ noisy | p.6 GPU table: all 42 numbers survive but **column order is scrambled** — never quote the table, use the formula from p.6 bottom: `peak FP16 = #PEs × IPC × Fclk`. Figure-only p.5, 7, 10, 17–19 |

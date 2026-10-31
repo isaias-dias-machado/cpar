@@ -3,14 +3,14 @@
 Mestrado students' repo for the **Parallel Computing** work assignment:
 OpenMP-parallelizing a Lennard-Jones molecular-dynamics code of argon gas
 and measuring it on the Deucalion ARM partition.
-Normative source: [`context/WA1_26-27.pdf`](context/notes/WA1_26-27.md) — read it
-via its note card first; nothing here restates it.
+Normative source: [`context/WA1_26-27.pdf`](context/WA1_26-27.pdf) — read it via its
+note card (`context/notes/WA1_26-27.md`) first; nothing here restates it.
 
 ## Repository map
 
 | path | role | rules |
 |---|---|---|
-| `src/MD.cpp` | the case-study solver (701 lines, single file) | hot spots `computeAccelerations` (l.525) and `Potential` (l.495); `N = 5000` hardcoded at l.227 (≠ WA1's "line 214") |
+| `src/MD.cpp` | the case-study solver (701 lines, single file) | hot spots `computeAccelerations` and `Potential`; current `N` value/line drift: `context/topics/md-case-study.md` |
 | `Makefile` | graded build | **do not restructure**; see the constraint list below |
 | `inputdata.txt` | stdin feed: title(`cp`), gas(`Ar`), T(100 K), ρ(35000 mol/m³) | keep the 4-line order of `scanf`s |
 | `context/` | knowledge base (indexed course PDFs) | see `context/README.md`; entry point `context/INDEX.md` |
@@ -23,11 +23,10 @@ via its note card first; nothing here restates it.
 4. `-fopenmp` mandatory; build target graded on **GCC/15.2.0, ARM node**;
    also suggested: `-march=native` (and `-g -fno-omit-frame-pointer` when
    profiling — a separate profile build is acceptable).
-5. Data races = **strong penalty** (30% weight is legibility+approach; 30% is
-   execution time; 40% is report quality).
+5. Data races = **strong penalty** (three weighted parts: `context/notes/WA1_26-27.md` §3).
 6. Submission: zip → 2-page IEEE report + `src/` + `Makefile` (+ assets it
    needs). No executables, no binary-byproduct committed to git.
-   Deadline: **25-Nov-26 23:59**.
+   Deadline: `context/notes/WA1_26-27.md` §5.
 
 ## Build & run (local, before anything goes to the cluster)
 
@@ -43,17 +42,25 @@ Node facts (cores, CMG topology, ISA/SVE, memory, compiler, partition size,
 `perf` status) are **measured, not slide-derived**:
 `context/measured/node.md`. Do not restate them here.
 
-- Rules of use: an interactive job bills 48 cores regardless of use
-  (`context/notes/Boas_Praticas.md`).
-- Canonical session: `srun -A <account> --time=48:00:00 --nodes=1 -p
-  normal-arm --pty bash`; modules `ml GCC`, `ml purge`.
+- **The agent never connects** (see the access section below). All commands
+  here are for the operator.
+- Rules of use, session, modules, workspace and quota: `context/notes/Boas_Praticas.md`.
 - **Build on the node, never on `ln*`**: the login node is not the target ISA
   (`context/measured/node.md`), so a binary compiled there will not run on
   `cna*`.
-- Workspace: `/projects/F202500010HPCVLABUMINHO/2026-2027cp/mei.2026.pg65416`
-  (home is quota-limited to 25k files).
-- Profiling: recipe in `context/topics/profiling-workflow.md`.
-  (Score-P/Cube not for the current stage, ignore it)
+- Profiling: recipe in `context/topics/profiling-workflow.md` (`perf` first;
+  Score-P/Cube is optional).
+
+## Deucalion access (non-negotiable)
+
+- The agent (LLM) has **no access** to Deucalion: no `ssh`, `scp`, `srun`,
+  `sbatch`, no keys, no tunnels, no remote filesystem mounts.
+- The interface is **script-mediated**: the agent writes/edits scripts under
+  `remote/`, tells the operator exactly what to run, and reads back only the
+  transcript the operator commits under `context/measured/`.
+- The operator runs everything; `remote/recon.sh` and
+  `context/topics/profiling-workflow.md` are operator runbooks, not agent
+  actions.
 
 ## Context-reading protocol (before answering any technical question)
 
@@ -95,7 +102,5 @@ Portuguese — bilingual terminology is expected).
   Measured facts live in `context/measured/node.md`; anything not there is
   unmeasured (cache sizes, SVE vector length and HBM2 bandwidth are still
   gaps — say so rather than estimating).
-- Do not ssh or scp into Deucalion (see above) — reply to any "try it there"
-  request with a recorded command list instead of a connection attempt.
-  **Exception:** `remote/recon.sh` is written *for the operator to run*; the
-  agent never executes it, and reads only the transcript it brings back.
+- Do not connect to Deucalion in any way (see "Deucalion access"): reply to
+  any "try it there" request with a script/command list for the operator.

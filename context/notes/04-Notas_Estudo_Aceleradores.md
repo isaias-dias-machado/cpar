@@ -17,17 +17,16 @@ pt-pt ⇄ en-us (ver `../glossary.md`) — mas sem impacto direto no WA1.
 - p.1 aceleradores: **GPU** (milhares de núcleos), **TPU/NPU** (ASIC de
   álgebra linear / redes neuronais), **FPGA** (hardware reprogramável).
   Processamento **vetorial vs matricial** (1D vs 2D). SIMD em CPUs modernos:
-  registos alargados (AVX-512 = 16×FP32), ALUs vetoriais segmentadas,
-  leituras/escritas em passada contínua (unit-stride) ou com **gather/scatter**.
-  Registos polimórficos: ARM **SVE** com VLEN agnóstico de comprimento
-  (128–2048 bits).
-- p.2 **3º desafio — código eficiente para aceleradores**: D1 dependências
-  de dados e de controlo (if/else quebra o fluxo; predicação com máscaras
-  filtra os resultados indesejados); D2 gestão de dados
-  (movimentação explícita de memória, alinhamento/coalescing);
-  precisão numérica (underflow/overflow ao reduzir bits).
-- p.3 precisão: FP16/BF16 acelera; **precisão mista** (acumular em FP32);
-  **quantização** (INT8); largura de banda (4× menos dados 64→16 bits).
+  registos alargados (AVX-512 = 16×FP32), ALUs vetoriais segmentadas.
+- p.2 registos polimórficos: ARM **SVE** com VLEN agnóstico de comprimento
+  (128–2048 bits); leituras/escritas em passada contínua (unit-stride) ou
+  com **gather/scatter**; **desafios D1** (dependências de dados e de
+  controlo; predicação com máscaras) e **D2** (gestão de dados: movimentação
+  explícita de memória, alinhamento/coalescing).
+- p.3 D2 em detalhe (alinhamento, strides, coalescing) e **precisão
+  numérica**: FP16/BF16 acelera; **precisão mista** (acumular em FP32);
+  **quantização** (INT8); largura de banda (4× menos dados 64→16 bits);
+  underflow/overflow.
 
 ## Use it for
 - Portuguese terminology for the report/defence (the slides mix both

@@ -15,9 +15,9 @@
 #     job). This script never opens a connection on its own.
 #   * Everything is tee'd into one transcript file so no result is retyped.
 #   * The transcript is written under the /projects workspace, never to $HOME
-#     (home is limited to 25k files — context/notes/Boas_Praticas.md p.8).
+#     (home is limited to 25k files — context/notes/Boas_Praticas.md p.9).
 #   * Part 2 runs for at most 10 minutes: an interactive/allocated job bills
-#     48 cores even when one is used (context/notes/Boas_Praticas.md p.8, p.11).
+#     48 cores even when one is used (context/notes/Boas_Praticas.md p.9, p.12).
 #
 # FAILURE MODES
 #   * No ARM account associated with $USER  -> Part 2 is skipped, a hint is
@@ -117,7 +117,7 @@ printf '\n$ find %s | wc -l   # home file-count guard: must stay under 25000\n' 
 find "$HOME" 2>/dev/null | wc -l
 
 # Accounts ending in 'a' are the ARM ones (f202500010hpcvlabuminhoa);
-# context/notes/Boas_Praticas.md p.8. Preferred parse uses `-P` (parsable,
+# context/notes/Boas_Praticas.md p.9. Preferred parse uses `-P` (parsable,
 # '|'-separated); the fallback covers Slurm builds that ignore `-P`.
 parsed_account="$(
 	sacctmgr -n -P show assoc where user="$USER" format=Account 2>/dev/null |
