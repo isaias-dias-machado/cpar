@@ -14,6 +14,8 @@ note card (`context/notes/WA1_26-27.md`) first; nothing here restates it.
 | `Makefile` | graded build | **do not restructure**; see the constraint list below |
 | `inputdata.txt` | stdin feed: title(`cp`), gas(`Ar`), T(100 K), ρ(35000 mol/m³) | keep the 4-line order of `scanf`s |
 | `context/` | knowledge base (indexed course PDFs) | see `context/README.md`; entry point `context/INDEX.md` |
+| `remote/` | operator-run Deucalion scripts: `recon.sh` (recon), `md.sbatch` (build/timing/perf runner) | agent writes, **operator runs**; usage in `README.md` |
+| `README.md` | build/run/submit usage | documents workflow only; every fact links into `context/` |
 
 ## Hard constraints (WA1:1–2 — these are normative, not advice)
 
