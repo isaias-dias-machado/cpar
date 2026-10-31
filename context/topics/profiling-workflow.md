@@ -1,13 +1,16 @@
 # Profiling workflow — from the course guides, adapted to this repo
 
 Sources: `Profiling.pdf p.2–4` (commands), `WA1_26-27.pdf p.2 Annex A` (flags),
-`Boas_Praticas.pdf` (session etiquette). Run-after-approval only — see the
-"Do not connect yet" note in root `AGENTS.md`.
+`Boas_Praticas.pdf` (session etiquette), plus the measured node facts in
+[`../measured/node.md`](../measured/node.md). Connecting and running are now
+allowed; the 48-core billing rule while an allocation is open is not suspended.
 
 ## Before any measurement (record in the report)
-- node type & clock: `hostname` on `cna*`, `lscpu` (A64FX, 48 cores ⇒ the
-  `OMP_NUM_THREADS ?= 48` ceiling), `cat /proc/meminfo | head -1` (32 GB HBM2),
-  compiler: `gcc --version` (target: **GCC 15.2.0**, graded).
+Node identity, core count, memory, compiler version and `perf` status are
+**already measured** — cite [`../measured/node.md`](../measured/node.md)
+instead of re-probing. Two rules that follow from it: the thread ceiling is
+whatever that file says (it is the whole node), and **build and run inside the
+allocation**, never on a login node — its ISA is not the target ISA.
 - inputs fixed: `inputdata.txt` (`cp\nAr\n100\n35000` → title, gas=Ar,
   Tinit=100 K, ρ=35000 mol/m³). N is the `N = 5000` constant
   (`src/MD.cpp:227`) — **temporary** edit for the profiling seed

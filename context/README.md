@@ -11,6 +11,7 @@ question, never more.
 | **L0 index** | [`INDEX.md`](INDEX.md), [`FIDELITY.md`](FIDELITY.md) | first contact with a topic; the routing table |
 | **L1 note cards** | [`notes/`](notes/) — one per PDF | need the gist of one source |
 | **L2 synthesis** | [`topics/`](topics/), [`equations.md`](equations.md), [`glossary.md`](glossary.md), [`WA1-checklist.md`](WA1-checklist.md) | need a *decision file* spanning several sources |
+| **measured** | [`measured/`](measured/) — distilled `node.md` + one dated raw transcript per run | need a fact about the real machine (cores, ISA, compiler, partition) |
 | raw dumps | [`_text/`](_text/) | greppable text layer, per-file provenance header; **lossy on the pages flagged in `FIDELITY.md`** |
 
 ## Contracts (keep them when extending)

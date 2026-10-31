@@ -39,16 +39,20 @@ make clean
 
 ## Deucalion
 
-- Partition: `normal-arm` (nodes `cna00xx`), Fujitsu A64FX 48-core + 32 GB HBM2
-  per node; rules of use: an interactive job bills 48 cores regardless of use
+Node facts (cores, CMG topology, ISA/SVE, memory, compiler, partition size,
+`perf` status) are **measured, not slide-derived**:
+`context/measured/node.md`. Do not restate them here.
+
+- Rules of use: an interactive job bills 48 cores regardless of use
   (`context/notes/Boas_Praticas.md`).
 - Canonical session: `srun -A <account> --time=48:00:00 --nodes=1 -p
-  normal-arm --pty bash`; modules `ml GCC` (=15.2.0), `ml purge`.
-- Workspace: `/projects/F202500010HPCVLABUMINHO/2026-2027cp/mei.2026.pg65416
-` (home
-  folder is quota-limited to 25k files).
-- Profiling: `perf` (sampling) + Score-P/Cube recipe in
-  `context/topics/profiling-workflow.md`.
+  normal-arm --pty bash`; modules `ml GCC`, `ml purge`.
+- **Build on the node, never on `ln*`**: the login node is not the target ISA
+  (`context/measured/node.md`), so a binary compiled there will not run on
+  `cna*`.
+- Workspace: `/projects/F202500010HPCVLABUMINHO/2026-2027cp/mei.2026.pg65416`
+  (home is quota-limited to 25k files).
+- Profiling: recipe in `context/topics/profiling-workflow.md`.
   (Score-P/Cube not for the current stage, ignore it)
 
 ## Context-reading protocol (before answering any technical question)
@@ -61,6 +65,9 @@ make clean
    `context/equations.md`).
 5. `_text/*.txt` are greppable haystacks with provenance headers; never cite
    from them for pages flagged lossy/noisy.
+6. `context/measured/` holds facts we **measured** on a dated machine, not
+   slide claims. Read `measured/node.md` (distilled) and cite its `L<n>`
+   anchors into the dated raw transcript; never restate those facts elsewhere.
 
 Report-side references live in `context/WA1-checklist.md`; the
 pt-pt ⇄ en-us vocabulary map is `context/glossary.md` (defence is usually in
@@ -84,7 +91,11 @@ Portuguese — bilingual terminology is expected).
   which pages are lossy); cite PDF page anchors instead.
 - Do **not** rename `md`/`make` targets or add targets the graded Makefile
   does not specify without a report-side justification.
-- Do not invent hardware numbers for A64FX — slides never state FLOPs for
-  it; verify on node when access opens.
+- Do not invent hardware numbers for A64FX — slides never state FLOPs for it.
+  Measured facts live in `context/measured/node.md`; anything not there is
+  unmeasured (cache sizes, SVE vector length and HBM2 bandwidth are still
+  gaps — say so rather than estimating).
 - Do not ssh or scp into Deucalion (see above) — reply to any "try it there"
   request with a recorded command list instead of a connection attempt.
+  **Exception:** `remote/recon.sh` is written *for the operator to run*; the
+  agent never executes it, and reads only the transcript it brings back.

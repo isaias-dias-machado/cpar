@@ -25,6 +25,19 @@ note card → (rarely) the PDF page itself. Provenance and extraction fidelity:
 | `PL03_MXX.pdf` | 2 | lab guide | method template | clean | [`notes/PL_labs.md`](notes/PL_labs.md) |
 | `PL04_MXX.pdf` | 2 | lab guide | method template | clean | [`notes/PL_labs.md`](notes/PL_labs.md) |
 
+## A′. Measured sources (não são PDFs / not PDFs)
+
+The only layer whose claims come from *us running something* on a dated
+machine, not from a slide. One dated raw transcript per run (never edited, so
+its line anchors are permanent) + one distilled decision file.
+
+| raw transcript | when / where | distilled |
+|---|---|---|
+| [`measured/2026-10-31-recon.txt`](measured/2026-10-31-recon.txt) | 2026-10-31 18:24Z, `cna0022`, `normal-arm`, job 2172610 | [`measured/node.md`](measured/node.md) |
+
+Read `measured/node.md` first; open the raw transcript only to check an anchor
+(`L<n>`) or to grep something that was deliberately not distilled.
+
 ## B. Page index (file : page → tópico / topic)
 
 ### `WA1_26-27.pdf` — the assignment 🟥
@@ -207,8 +220,9 @@ Format `file:page`. EN/pt-pt mirrors share one row.
 | What limits speedup besides serial fraction? | `03PC:2–3` CPI growth/coherence/bandwidth; `03PC:1` profiles; `02CP:7–9` span |
 | Why doesn't the machine reach peak FLOP/s? | `03PC:2` naïve MM 10% peak; PL03 roofline; `04CP:11` peak equation |
 | Is my array layout SIMD-friendly? | `04CP:14–15` AoS vs SoA; `04CP:13` preconditions |
-| How big is Deucalion's ARM node? | `Boas:2` A64FX 48-core/HBM2 (+ `01CP:3`) |
+| How big is Deucalion's ARM node? | **measured**: `measured/node.md`; slides `Boas:2`, `01CP:3` |
 | How do I run on an ARM node? | `Boas:11` srun; `Profiling:2` exact line; `Boas:13–14` sbatch |
+| Where do I compile, and for which CPU? | **measured**: `measured/node.md` (login node ≠ target ISA ⇒ build inside the allocation); `WA1:2` graded on ARM |
 | Which compiler/flags are graded? | `WA1:2` GCC/15.2.0 ARM, `-fopenmp` mandatory, `-march=native`, `-g` for perf |
 | Where can I safe-fill without quota pain? | `Boas:8` projects folder; home ≤25k files |
 
@@ -219,4 +233,6 @@ Format `file:page`. EN/pt-pt mirrors share one row.
 - **writing the report** → `topics/performance-models.md`, `topics/memory-locality.md`, `notes/02CP_parallelism.md`, `notes/03PC_MemHierarchy.md`.
 - **profiling on Deucalion** → `notes/Profiling.md` + `topics/profiling-workflow.md`.
 - **understanding the physics of the case study** → `notes/MD_simulations.md` + `equations.md` + `topics/md-case-study.md`.
-- **operations on the cluster** → `notes/Boas_Praticas.md` (⚠️ still: do **not** connect yet — see root `AGENTS.md`).
+- **operations on the cluster** → `notes/Boas_Praticas.md` + **`measured/node.md`**
+  (what the node actually is: cores, CMG, ISA, compiler, perf, partition size).
+  The do-not-connect constraint is lifted; the *billing* rule is not.

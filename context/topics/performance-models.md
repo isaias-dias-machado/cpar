@@ -32,9 +32,10 @@ critical path move → forces → half-kick) alongside the benchmark.
 
 - per PU: `Peak = #PEs × 2(FMA) × Fclk` (the RTX-5090 example: 21760×2×2017 M).
 - per system: `Peak = #cores × SIMDlen × IPC × Fclk` (SIMDlen = #lanes).
-- The ARM-node candidate numbers (A64FX) must be **measured/verified on
-  node** (`lscpu`, `ml GCC` version string) — never copy a slide's FLOPs
-  number into the report.
+- The ARM-node numbers are **measured** — see
+  [`../measured/node.md`](../measured/node.md); do not restate them here.
+  Plug `SIMDlen` in only once the SVE vector length is measured (it is listed
+  there as a known gap, not a guess).
 
 ## 5. Roofline (PL03:1)
 
@@ -52,8 +53,9 @@ Rough arithmetic for the MD pair loop (`rSqd` even powers, per pair):
 so the kernel sits deep on the *memory-floor* side; the roofline sketch
 (`PL03:1 p.1`; model described `PL03:2` notes) justifies treating DRAM
 bandwidth as the first-order explanation if the speedup curve saturates
-*below* 48 cores. **Verify the node's HBM2 bandwidth on-site**
-(`Boas_Praticas p.2` quotes 32 GB HBM2 "50% faster").
+*below* 48 cores. **HBM2 bandwidth is still unquantified** — a known gap in
+[`../measured/node.md`](../measured/node.md), not a number to copy
+(`Boas_Praticas p.2` only says 32 GB HBM2, "50% faster").
 
 ## 6. Scalability profiles (03PC:1)
 

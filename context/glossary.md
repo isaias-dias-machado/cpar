@@ -63,6 +63,9 @@ is usually Portuguese (`01CP_Introduction.pdf p.1`).
 ## Supercomputing / HPC operations
 | pt-pt | en-us | source |
 |---|---|---|
+| nó de cálculo | compute node | measured/node.md |
+| cluster de memória (CMG) | core-memory group (CMG) | measured/node.md |
+| largura de vetor (SVE) | vector length (SVE VL) | measured/node.md |
 | fila de computação | compute queue / partition | Boas:8 |
 | tarefa em lote | batch job | Boas:10 |
 | módulos de software | (software) modules | Boas:9 |
