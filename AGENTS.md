@@ -37,19 +37,19 @@ make run        # ./md < inputdata.txt
 make clean
 ```
 
-## Deucalion (⚠️ DO NOT CONNECT YET — explicit operator instruction)
+## Deucalion
 
-Everything below is *recorded for when this constraint is lifted*; no SSH,
-no `srun`, no `scp` until told.
 - Partition: `normal-arm` (nodes `cna00xx`), Fujitsu A64FX 48-core + 32 GB HBM2
   per node; rules of use: an interactive job bills 48 cores regardless of use
   (`context/notes/Boas_Praticas.md`).
 - Canonical session: `srun -A <account> --time=48:00:00 --nodes=1 -p
   normal-arm --pty bash`; modules `ml GCC` (=15.2.0), `ml purge`.
-- Workspace: `/projects/F202500010HPCVLABUMINHO/2026-2027cp/<user>` (home
+- Workspace: `/projects/F202500010HPCVLABUMINHO/2026-2027cp/mei.2026.pg65416
+` (home
   folder is quota-limited to 25k files).
 - Profiling: `perf` (sampling) + Score-P/Cube recipe in
   `context/topics/profiling-workflow.md`.
+  (Score-P/Cube not for the current stage, ignore it)
 
 ## Context-reading protocol (before answering any technical question)
 
