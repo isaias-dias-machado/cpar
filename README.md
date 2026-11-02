@@ -1,36 +1,6 @@
 # pgXXXXX_pgYYYYY — Lennard-Jones MD (WA1, Phase 1)
 
-Serial baseline (`src/MD.cpp`) of an argon Lennard-Jones molecular-dynamics
-code that is to be OpenMP-parallelised and measured on the Deucalion ARM
-partition. The normative requirements (deadline, grading weights, mandatory
-flags) live in [`context/notes/WA1_26-27.md`](context/notes/WA1_26-27.md);
-the operational contract for this repo lives in [`AGENTS.md`](AGENTS.md);
-the knowledge base index is [`context/INDEX.md`](context/INDEX.md).
-
-This file only documents **how to build, run and submit** — it states no
-requirement and no hardware fact of its own, it links to the file that owns it.
-
-## Local machine (sanity only, never a measurement)
-
-```
-make                # builds ./md with the Makefile's flags
-make run            # ./md < inputdata.txt   (OMP_NUM_THREADS ?= 48 there)
-make run OMP_NUM_THREADS=4   # override the Makefile's default
-make clean
-```
-
-`inputdata.txt` is the 4-line stdin feed (title, gas, initial temperature,
-number density) and its order matches the `scanf` calls in `src/MD.cpp`.
-`N` and the timestep count are source constants, not knobs — see
-[`context/topics/md-case-study.md`](context/topics/md-case-study.md).
-
-A local run is a correctness check only: your laptop/desktop is not the target
-ISA, so neither the timings nor the vectorisation are meaningful.
-
 ## Running on Deucalion
-
-Everything is script-mediated: the agent writes scripts here, **you** run them
-and commit the transcript (the access rule has one home: `AGENTS.md`).
 
 ### One-time setup (login node, no allocation needed)
 
