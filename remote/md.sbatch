@@ -51,10 +51,11 @@ set -euo pipefail
 MODE="${MODE:-timing}"                # build | timing | perf | help
 OPT="${OPT:--O3 -ffast-math -fopenmp -march=native}"
 PROF_OPT="${PROF_OPT:--O3 -fopenmp -march=native -g -fno-omit-frame-pointer}"
-THREADS="${THREADS:-1 2 4 8 12 16 24 32 48}"   # sweep points (one process each)
+THREADS="${THREADS:-1}"   # sweep points (one process each)
+# THREADS="${THREADS:-1 2 4 8 12 16 24 32 48}"   # sweep points (one process each)
 REPS="${REPS:-3}"                     # repetitions per sweep point
 FREQ="${FREQ:-1000}"                  # perf sampling frequency, samples/s
-RUN_TIMEOUT="${RUN_TIMEOUT:-900}"     # seconds allowed per single run
+RUN_TIMEOUT="${RUN_TIMEOUT:-350}"     # seconds allowed per single run
 TOL="${TOL:-1e-6}"                    # determinism tolerance, relative
 KEEP_TRAJ="${KEEP_TRAJ:-0}"           # 1 = keep the multi-GB *_traj.xyz
 ALLOW_NON_ARM="${ALLOW_NON_ARM:-0}"   # 1 = local smoke test outside Slurm
@@ -80,7 +81,7 @@ Knobs (pass with: sbatch --export=ALL,NAME=value remote/md.sbatch)
   MODE         build | timing | perf | help            [timing]
   OPT          flags for the graded build path         [-O3 -ffast-math -fopenmp -march=native]
   PROF_OPT     flags for the perf-only binary          [... -g -fno-omit-frame-pointer]
-  THREADS      space-separated sweep points            [1 2 4 8 12 16 24 32 48]
+  THREADS      space-separated sweep points            [1]
   REPS         repetitions per point                   [3]
   FREQ         perf sampling rate (samples/s)          [1000]
   RUN_TIMEOUT  seconds allowed per single run          [900]
@@ -106,7 +107,7 @@ load_modules() {
 	# login node, and they are architecture-correct per node (Boas_Praticas.md).
 	if type -t module >/dev/null 2>&1; then
 		module purge >/dev/null 2>&1 || true
-		if module load GCC >/dev/null 2>&1; then
+		if module load "GCC/15.2.0" >/dev/null 2>&1; then
 			note "module GCC loaded"
 		else
 			note "!! module load GCC failed, using the system compiler"
