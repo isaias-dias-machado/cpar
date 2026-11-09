@@ -55,6 +55,7 @@ THREADS="${THREADS:-1}"   # sweep points (one process each)
 # THREADS="${THREADS:-1 2 4 8 12 16 24 32 48}"   # sweep points (one process each)
 REPS="${REPS:-3}"                     # repetitions per sweep point
 FREQ="${FREQ:-1000}"                  # perf sampling frequency, samples/s
+PERF_THREADS="${PERF_THREADS:-48}"     # OMP_NUM_THREADS for the perf-mode run (whole node)
 RUN_TIMEOUT="${RUN_TIMEOUT:-350}"     # seconds allowed per single run
 TOL="${TOL:-1e-6}"                    # determinism tolerance, relative
 KEEP_TRAJ="${KEEP_TRAJ:-0}"           # 1 = keep the multi-GB *_traj.xyz
@@ -84,7 +85,8 @@ Knobs (pass with: sbatch --export=ALL,NAME=value remote/md.sbatch)
   THREADS      space-separated sweep points            [1]
   REPS         repetitions per point                   [3]
   FREQ         perf sampling rate (samples/s)          [1000]
-  RUN_TIMEOUT  seconds allowed per single run          [900]
+  PERF_THREADS OMP_NUM_THREADS for the perf-mode run    [48]
+  RUN_TIMEOUT  seconds allowed per single run          [350]
   TOL          determinism tolerance (relative)        [1e-6]
   KEEP_TRAJ    1 = keep *_traj.xyz (multi-GB)          [0]
   RESULTS_DIR  where per-run directories are written   [<repo>/results/<job>-<mode>]
@@ -96,8 +98,10 @@ Modes
   build   compile with OPT through the Makefile, report the file type
   timing  build, then sweep THREADS x REPS, one RESULT line per run, then a
           cross-thread determinism canary (data-race check)
-  perf    build mdprof with PROF_OPT, perf record -g + perf stat, print the
-          --stdio hotspot report (the interactive TUI needs a terminal)
+  perf    build mdprof with PROF_OPT into the results dir, perf record -g and
+          perf stat (each under RUN_TIMEOUT, OMP_NUM_THREADS=PERF_THREADS),
+          full --stdio hotspot report saved to perf-report.txt (the TUI needs
+          a terminal)
 EOF
 }
 
@@ -150,13 +154,16 @@ build_tuned() {
 
 # Separate binary on purpose: -g -fno-omit-frame-pointer improves attribution
 # but must not contaminate the timed binary (context/topics/profiling-workflow.md).
+# Takes the output path: perf mode builds into the per-job results dir so two
+# jobs sharing one clone never clobber each other's binary.
 build_prof() {
-	section "build — profiling binary mdprof"
+	local out="$1"
+	section "build — profiling binary $out"
 	note "flags '$PROF_OPT'"
 	# shellcheck disable=SC2086  # PROF_OPT is intentionally word-split
-	gcc $PROF_OPT src/MD.cpp -lm -o mdprof
-	if [[ ! -x ./mdprof ]]; then
-		note "!! ./mdprof was not produced"
+	gcc $PROF_OPT src/MD.cpp -lm -o "$out"
+	if [[ ! -x $out ]]; then
+		note "!! $out was not produced"
 		return 1
 	fi
 }
@@ -252,27 +259,41 @@ determinism_check() {
 }
 
 perf_work() {
-	build_prof
 	mkdir -p "$results_dir"
+	local bin="$results_dir/mdprof"
+	build_prof "$bin"
 	if ! command -v perf >/dev/null 2>&1; then
 		note "!! perf not on PATH — nothing recorded"
 		return 0
 	fi
-	section "perf record — call graph, $FREQ samples/s"
-	if (cd "$results_dir" && perf record -g -F "$FREQ" -o perf.data -- \
-		"$workdir/mdprof" <"$workdir/inputdata.txt" >perf-run.log 2>&1); then
+	section "perf record — call graph, $FREQ samples/s, timeout ${RUN_TIMEOUT}s"
+	note "OMP_NUM_THREADS=$PERF_THREADS"
+	if (cd "$results_dir" && OMP_NUM_THREADS="$PERF_THREADS" timeout "$RUN_TIMEOUT" \
+		perf record -g -F "$FREQ" -o perf.data -- \
+		"$bin" <"$workdir/inputdata.txt" >perf-run.log 2>&1); then
 		note "perf record done"
 	else
-		note "!! perf record failed (permission?) — see $results_dir/perf-run.log"
+		note "!! perf record failed (exit=$?) — see $results_dir/perf-run.log"
 		return 0
 	fi
 	((KEEP_TRAJ == 1)) || rm -f "$results_dir"/*_traj.xyz
-	note "hotspots (perf report --stdio; the TUI needs an interactive terminal):"
-	perf report -n --stdio -i "$results_dir/perf.data" | head -n 60 | sed 's/^/  /'
+	section "perf report — hotspots (full report in perf-report.txt; the TUI needs a terminal)"
+	# Write the whole report to a file first: piping perf into `head` can kill
+	# it with SIGPIPE, and pipefail + set -e would then abort the whole job.
+	if perf report -n --stdio -i "$results_dir/perf.data" \
+		>"$results_dir/perf-report.txt"; then
+		sed -n '1,60p' "$results_dir/perf-report.txt" | sed 's/^/  /'
+	else
+		note "!! perf report failed on $results_dir/perf.data"
+	fi
 	section "perf stat — counters that exist on A64FX ('branches' is not supported)"
-	(cd "$results_dir" && perf stat \
+	if (cd "$results_dir" && OMP_NUM_THREADS="$PERF_THREADS" timeout "$RUN_TIMEOUT" perf stat \
 		-e task-clock,cycles,instructions,cache-references,cache-misses \
-		-- "$workdir/mdprof" <"$workdir/inputdata.txt" >/dev/null) 2>&1 | sed 's/^/  /'
+		-- "$bin" <"$workdir/inputdata.txt" >/dev/null) 2>&1 | sed 's/^/  /'; then
+		:
+	else
+		note "!! perf stat failed (unsupported event?)"
+	fi
 }
 
 # ------------------------------------------------------------------ main ----
@@ -306,8 +327,8 @@ if [[ ! -f src/MD.cpp || ! -f Makefile ]]; then
 	exit 2
 fi
 
-provenance
 load_modules
+provenance
 
 case "$MODE" in
 build)

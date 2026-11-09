@@ -44,7 +44,7 @@ for as long as it holds it, whatever it uses (`context/notes/Boas_Praticas.md`).
 |---|---|---|
 | `sbatch -J build --export=ALL,MODE=build remote/md.sbatch` | `make clean && make CFLAGS="$OPT"`, then `file ./md` so you can see it is an `aarch64` binary | log only |
 | `sbatch -J timing --export=ALL,THREADS="1 2 4 8 12 16 24 32 48",REPS=3 remote/md.sbatch` | build, then every thread count × repetition, then a cross-thread determinism check | one `RESULT` line per run + `results/<job>-timing/p<P>_r<R>/` |
-| `sbatch -J perf --export=ALL,MODE=perf,FREQ=1000 remote/md.sbatch` | separate `mdprof` build (`$PROF_OPT`), `perf record -g`, `perf report --stdio`, `perf stat` | `results/<job>-perf/perf.data` |
+| `sbatch -J perf --export=ALL,MODE=perf,FREQ=1000 remote/md.sbatch` | separate `mdprof` build (`$PROF_OPT`) into the results dir, `perf record -g` + `perf stat` (each under `RUN_TIMEOUT`, `OMP_NUM_THREADS=PERF_THREADS`), full `perf report --stdio` in `perf-report.txt` | `results/<job>-perf/{perf.data,perf-report.txt,mdprof}` |
 
 Two separate jobs on purpose: profiling needs its own binary and its own
 overhead budget, so mixing it into the timed job would contaminate the number
@@ -65,7 +65,8 @@ Pass any of them with `--export=ALL,NAME=value` — comma-free values only.
 | `THREADS` | `1 2 4 8 12 16 24 32 48` | sweep points, one process each |
 | `REPS` | `3` | repetitions per point (report the median) |
 | `FREQ` | `1000` | perf samples per second |
-| `RUN_TIMEOUT` | `900` | seconds allowed per single run; a timeout is logged as `exit=124` and the sweep continues |
+| `PERF_THREADS` | `48` | `OMP_NUM_THREADS` for the perf-mode run (whole node) |
+| `RUN_TIMEOUT` | `350` | seconds allowed per single run (timing reps and each perf command); a timeout is logged as `exit=124` and the sweep continues |
 | `TOL` | `1e-6` | relative tolerance for the determinism canary |
 | `KEEP_TRAJ` | `0` | `1` keeps `*_traj.xyz` — multi-GB per run, off by default |
 | `RESULTS_DIR` | `<repo>/results/<job>-<mode>` | where per-run directories go |
