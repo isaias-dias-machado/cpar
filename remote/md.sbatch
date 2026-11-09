@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=48
-#SBATCH --time=00:30:00
+#SBATCH --time=00:50:00
 #SBATCH --output=/projects/F202500010HPCVLABUMINHO/2026-2027cp/%u/logs/%x-%j.log
 #
 # remote/md.sbatch — one batch job = one A64FX node = one experiment.
@@ -55,7 +55,7 @@ THREADS="${THREADS:-1}"   # sweep points (one process each)
 # THREADS="${THREADS:-1 2 4 8 12 16 24 32 48}"   # sweep points (one process each)
 REPS="${REPS:-3}"                     # repetitions per sweep point
 FREQ="${FREQ:-1000}"                  # perf sampling frequency, samples/s
-RUN_TIMEOUT="${RUN_TIMEOUT:-350}"     # seconds allowed per single run
+RUN_TIMEOUT="${RUN_TIMEOUT:-500}"     # seconds allowed per single run
 TOL="${TOL:-1e-6}"                    # determinism tolerance, relative
 KEEP_TRAJ="${KEEP_TRAJ:-0}"           # 1 = keep the multi-GB *_traj.xyz
 ALLOW_NON_ARM="${ALLOW_NON_ARM:-0}"   # 1 = local smoke test outside Slurm
@@ -105,10 +105,10 @@ load_modules() {
 	section "toolchain"
 	# The job shell is not a login shell; modules are not inherited from the
 	# login node, and they are architecture-correct per node (Boas_Praticas.md).
-	if type -t module >/dev/null 2>&1; then
-		module purge >/dev/null 2>&1 || true
-		if module load "GCC/15.2.0" >/dev/null 2>&1; then
-			note "module GCC loaded"
+	if type -t ml >/dev/null 2>&1; then
+		ml purge >/dev/null 2>&1 || true
+		if ml load "GCC/15.2.0" >/dev/null 2>&1; then
+      note "module GCC loaded $(gcc --version)"
 		else
 			note "!! module load GCC failed, using the system compiler"
 		fi
