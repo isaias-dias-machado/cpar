@@ -53,6 +53,16 @@ that is actually graded (`context/topics/profiling-workflow.md`).
 Keeping `perf` in a batch job has one trap: **`perf report` needs `--stdio`**,
 because a batch job has no terminal for the TUI.
 
+### Minimal perf-only job
+
+`remote/perf.sbatch` is the stripped-down standalone version of perf mode — one
+node, one profiling build (`-fopenmp -g -fno-omit-frame-pointer`), `perf record
+-g`, and the full report saved to `results/<jobid>-perf/perf-report.txt`:
+
+```
+sbatch -J perf-min --export=ALL,FREQ=1000 remote/perf.sbatch
+```
+
 ### Knobs (never edit the script to change an experiment)
 
 Pass any of them with `--export=ALL,NAME=value` — comma-free values only.
