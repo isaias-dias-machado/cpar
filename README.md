@@ -55,12 +55,11 @@ because a batch job has no terminal for the TUI.
 
 ### Minimal perf-only job
 
-`remote/perf.sbatch` is the stripped-down standalone version of perf mode — one
-node, one profiling build (`-fopenmp -g -fno-omit-frame-pointer`), `perf record
--g`, and the full report saved to `results/<jobid>-perf/perf-report.txt`:
+`remote/perf.sbatch` — one node, one build, `perf record -g -F 1000`, and the
+full `perf report -n --stdio` in `results/<timestamp>/perf_report.txt`:
 
 ```
-sbatch -J perf-min --export=ALL,FREQ=1000 remote/perf.sbatch
+sbatch remote/perf.sbatch
 ```
 
 ### Knobs (never edit the script to change an experiment)
