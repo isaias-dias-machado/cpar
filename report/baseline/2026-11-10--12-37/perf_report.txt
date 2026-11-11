@@ -1,0 +1,508 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 3M of event 'cycles'
+# Event count (approx.): 6742134682850
+#
+# Children      Self       Samples  Command  Shared Object      Symbol                             
+# ........  ........  ............  .......  .................  ...................................
+#
+   100.00%     0.00%             0  mdprof   mdprof             [.] _start
+            |
+            ---_start
+               __libc_start_main
+               main
+               |          
+               |--66.50%--Potential
+               |          |          
+               |          |--62.41%--__pow
+               |          |          |          
+               |          |          |--60.39%--__pow_finite
+               |          |          |          |          
+               |          |          |           --16.88%--__exp1
+               |          |          |          
+               |          |           --1.05%--__exp1
+               |          |          
+               |           --1.12%--__pow_finite
+               |          
+                --32.99%--VelocityVerlet
+                          |          
+                           --32.84%--computeAccelerations
+                                     |          
+                                      --31.88%--__pow
+                                                |          
+                                                |--30.91%--__pow_finite
+                                                |          |          
+                                                |           --8.59%--__exp1
+                                                |          
+                                                 --0.52%--__exp1
+
+   100.00%     0.00%             0  mdprof   libc-2.28.so       [.] __libc_start_main
+            |
+            ---__libc_start_main
+               main
+               |          
+               |--66.50%--Potential
+               |          |          
+               |          |--62.41%--__pow
+               |          |          |          
+               |          |          |--60.39%--__pow_finite
+               |          |          |          |          
+               |          |          |           --16.88%--__exp1
+               |          |          |          
+               |          |           --1.05%--__exp1
+               |          |          
+               |           --1.12%--__pow_finite
+               |          
+                --32.99%--VelocityVerlet
+                          |          
+                           --32.84%--computeAccelerations
+                                     |          
+                                      --31.88%--__pow
+                                                |          
+                                                |--30.91%--__pow_finite
+                                                |          |          
+                                                |           --8.59%--__exp1
+                                                |          
+                                                 --0.52%--__exp1
+
+   100.00%     0.00%            12  mdprof   mdprof             [.] main
+            |          
+             --100.00%--main
+                       |          
+                       |--66.50%--Potential
+                       |          |          
+                       |          |--62.41%--__pow
+                       |          |          |          
+                       |          |          |--60.39%--__pow_finite
+                       |          |          |          |          
+                       |          |          |           --16.88%--__exp1
+                       |          |          |          
+                       |          |           --1.05%--__exp1
+                       |          |          
+                       |           --1.12%--__pow_finite
+                       |          
+                        --32.99%--VelocityVerlet
+                                  |          
+                                   --32.84%--computeAccelerations
+                                             |          
+                                              --31.88%--__pow
+                                                        |          
+                                                        |--30.91%--__pow_finite
+                                                        |          |          
+                                                        |           --8.59%--__exp1
+                                                        |          
+                                                         --0.52%--__exp1
+
+    94.67%     1.65%         55795  mdprof   libm-2.28.so       [.] __pow
+            |          
+            |--93.02%--__pow
+            |          |          
+            |          |--91.45%--__pow_finite
+            |          |          |          
+            |          |           --25.51%--__exp1
+            |          |          
+            |           --1.58%--__exp1
+            |          
+             --1.65%--_start
+                       __libc_start_main
+                       main
+                       |          
+                       |--0.97%--Potential
+                       |          __pow
+                       |          
+                        --0.52%--VelocityVerlet
+
+    92.72%    67.18%       2270643  mdprof   libm-2.28.so       [.] __pow_finite
+            |          
+            |--67.18%--_start
+            |          __libc_start_main
+            |          main
+            |          |          
+            |          |--44.61%--Potential
+            |          |          |          
+            |          |          |--43.50%--__pow
+            |          |          |          __pow_finite
+            |          |          |          
+            |          |           --1.12%--__pow_finite
+            |          |          
+            |           --22.45%--VelocityVerlet
+            |                     computeAccelerations
+            |                     |          
+            |                      --22.31%--__pow
+            |                                __pow_finite
+            |          
+             --25.54%--__pow_finite
+                       |          
+                        --25.51%--__exp1
+
+    66.50%     2.97%        100423  mdprof   mdprof             [.] Potential
+            |          
+            |--63.53%--Potential
+            |          |          
+            |          |--62.41%--__pow
+            |          |          |          
+            |          |          |--60.39%--__pow_finite
+            |          |          |          |          
+            |          |          |           --16.88%--__exp1
+            |          |          |          
+            |          |           --1.05%--__exp1
+            |          |          
+            |           --1.12%--__pow_finite
+            |          
+             --2.97%--_start
+                       __libc_start_main
+                       main
+                       Potential
+
+    33.00%     0.81%         27455  mdprof   mdprof             [.] computeAccelerations
+            |          
+            |--32.19%--computeAccelerations
+            |          |          
+            |           --32.04%--__pow
+            |                     |          
+            |                     |--31.06%--__pow_finite
+            |                     |          |          
+            |                     |           --8.64%--__exp1
+            |                     |          
+            |                      --0.53%--__exp1
+            |          
+             --0.81%--_start
+                       __libc_start_main
+                       main
+                       |          
+                        --0.81%--VelocityVerlet
+                                  computeAccelerations
+
+    32.99%     0.00%            17  mdprof   mdprof             [.] VelocityVerlet
+            |          
+             --32.99%--VelocityVerlet
+                       |          
+                        --32.84%--computeAccelerations
+                                  |          
+                                   --31.88%--__pow
+                                             |          
+                                             |--30.91%--__pow_finite
+                                             |          |          
+                                             |           --8.59%--__exp1
+                                             |          
+                                              --0.52%--__exp1
+
+    27.09%    27.08%        915320  mdprof   libm-2.28.so       [.] __exp1
+            |          
+             --27.08%--_start
+                       __libc_start_main
+                       main
+                       |          
+                       |--17.92%--Potential
+                       |          __pow
+                       |          |          
+                       |          |--16.87%--__pow_finite
+                       |          |          __exp1
+                       |          |          
+                       |           --1.05%--__exp1
+                       |          
+                        --9.12%--VelocityVerlet
+                                  computeAccelerations
+                                  __pow
+                                  |          
+                                  |--8.59%--__pow_finite
+                                  |          __exp1
+                                  |          
+                                   --0.52%--__exp1
+
+     0.27%     0.27%          9107  mdprof   mdprof             [.] pow@plt
+     0.03%     0.00%             0  mdprof   [kernel.kallsyms]  [k] el0_irq_naked
+     0.03%     0.00%             0  mdprof   [kernel.kallsyms]  [k] gic_handle_irq
+     0.03%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __handle_domain_irq
+     0.03%     0.00%             0  mdprof   [kernel.kallsyms]  [k] irq_exit
+     0.03%     0.01%           487  mdprof   [kernel.kallsyms]  [k] __softirqentry_text_start
+     0.01%     0.00%             7  mdprof   [kernel.kallsyms]  [k] rcu_core_si
+     0.01%     0.00%            91  mdprof   [kernel.kallsyms]  [k] rcu_core
+     0.01%     0.00%            10  mdprof   [kernel.kallsyms]  [k] rcu_report_qs_rdp
+     0.00%     0.00%           156  mdprof   [kernel.kallsyms]  [k] rcu_report_qs_rnp
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] run_rebalance_domains
+     0.00%     0.00%           114  mdprof   [kernel.kallsyms]  [k] note_gp_changes
+     0.00%     0.00%             7  mdprof   [kernel.kallsyms]  [k] rebalance_domains
+     0.00%     0.00%             5  mdprof   [kernel.kallsyms]  [k] load_balance
+     0.00%     0.00%            53  mdprof   [kernel.kallsyms]  [k] find_busiest_group
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] run_timer_softirq
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] expire_timers
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] call_timer_fn
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] neigh_timer_handler
+     0.00%     0.00%            42  mdprof   [kernel.kallsyms]  [k] update_blocked_averages
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] neigh_probe
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ndisc_solicit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ndisc_send_ns
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] ndisc_send_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] net_rx_action
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __napi_poll
+     0.00%     0.00%             1  mdprof   [igb]              [k] igb_poll
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] dev_queue_xmit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __dev_queue_xmit
+     0.00%     0.00%             1  mdprof   [igb]              [k] igb_clean_rx_irq
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __netif_receive_skb_core
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] napi_gro_receive
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] netif_receive_skb_internal
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __netif_receive_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] sch_direct_xmit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] dev_hard_start_xmit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip6_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip6_finish_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __ip6_finish_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] dma_map_page_attrs
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] iommu_dma_map_page
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __iommu_dma_map_swiotlb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __iommu_dma_map
+     0.00%     0.00%             1  mdprof   [igb]              [k] igb_xmit_frame_ring
+     0.00%     0.00%             0  mdprof   [igb]              [k] igb_xmit_frame
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] neigh_resolve_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip6_finish_output2
+     0.00%     0.00%            14  mdprof   [kernel.kallsyms]  [k] rcu_segcblist_ready_cbs
+     0.00%     0.00%            13  mdprof   [kernel.kallsyms]  [k] idle_cpu
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] el0_svc
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] el0_svc_handler
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __neigh_notify
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] arp_rcv
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] alloc_iova_fast
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] iommu_dma_alloc_iova.isra.2
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] arp_process
+     0.00%     0.00%             7  mdprof   [kernel.kallsyms]  [k] alloc_iova
+     0.00%     0.00%             8  mdprof   [kernel.kallsyms]  [k] swake_up_one
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] rcu_gp_kthread_wake
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __arm64_sys_openat
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_sys_open
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_filp_open
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] path_openat
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] fprintf
+     0.00%     0.00%             2  mdprof   libc-2.28.so       [.] vfprintf
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] consume_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] icmp6_dst_alloc
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] rtnl_notify
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] dst_alloc
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] map_id_up
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] __fopen_internal
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_file_fopen@@GLIBC_2.17
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_file_open
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] __GI___libc_open
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_last
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_truncate
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] notify_change
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_setattr
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_setattr_raw
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_prep_md_op_data
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_i2gids
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_i2suppgid
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] from_kgid
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip6_dst_alloc
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __tcp_transmit_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __ip_queue_xmit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_local_out
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_finish_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __ip_finish_output
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_finish_output2
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] __iommu_map
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] iommu_map_atomic
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] netlink_broadcast_filtered
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] nlmsg_notify
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] netlink_broadcast
+     0.00%     0.00%             4  mdprof   [kernel.kallsyms]  [k] __wake_up_common_lock
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] sock_def_readable
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __wake_up_sync_key
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] link_path_walk
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _start
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _dl_start
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _dl_start_final
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _dl_sysdep_start
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] dl_main
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _dl_map_object_deps
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _dl_catch_exception
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] openaux
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] _dl_map_object
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] open_path
+     0.00%     0.00%             0  mdprof   ld-2.28.so         [.] __GI___open64_nocancel
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] netdev_pick_tx
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __alloc_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_delack_timer
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_delack_timer_handler
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_send_ack
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __tcp_send_ack.part.15
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] _iommu_map
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] neigh_fill_info
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] __GI___printf_fp_l
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_do_write@@GLIBC_2.17
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] new_do_write
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_file_write@@GLIBC_2.17
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] __GI___libc_write
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __arm64_sys_write
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ksys_write
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] vfs_write
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __vfs_write
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] new_sync_write
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_file_write_iter
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_file_io_generic
+     0.00%     0.00%             3  mdprof   [kernel.kallsyms]  [k] kmem_cache_alloc
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] ip_route_input_slow
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_route_input_noref
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_route_input_rcu
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] skb_release_all
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] packet_rcv
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] kfree_skbmem
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __netdev_pick_tx
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] find_next_and_bit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] arp_solicit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] arp_send_dst.part.3
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] arp_xmit
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] kmem_cache_alloc_node
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] cpumask_next_and
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] kmem_cache_free
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] dst_init
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] ndisc_alloc_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_keepalive_timer
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_write_wakeup
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] tcp_xmit_probe_skb
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_queue_xmit
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] percpu_counter_add_batch
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_queue_xmit
+     0.00%     0.00%             1  mdprof   libc-2.28.so       [.] _IO_file_xsputn@@GLIBC_2.17
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] task_work_run
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ____fput
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __fput
+     0.00%     0.00%             0  mdprof   [lustre]           [k] ll_file_release
+     0.00%     0.00%             0  mdprof   [lmv]              [k] lmv_lock_match
+     0.00%     0.00%             0  mdprof   [mdc]              [k] mdc_lock_match
+     0.00%     0.00%             0  mdprof   [ptlrpc]           [k] ldlm_lock_match_with_skip
+     0.00%     0.00%             0  mdprof   [ptlrpc]           [k] ldlm_resource_get
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_init0.isra.1
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_fflush
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_file_sync@@GLIBC_2.17
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_loop
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] skb_release_data
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] neigh_lookup
+     0.00%     0.00%             2  mdprof   [kernel.kallsyms]  [k] __local_bh_enable_ip
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __neigh_update
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] neigh_update
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] work_pending
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_notify_resume
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] security_sk_classify_flow
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] icmpv6_flow_init
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __skb_flow_dissect
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __skb_get_hash
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] xfrm_lookup_with_ifid
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] xfrm_lookup
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] ip6_mtu
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __msecs_to_jiffies
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __kmalloc_node_track_caller
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __kmalloc_reserve.isra.8
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] neigh_connected_output
+     0.00%     0.00%             0  mdprof   [ib_ipoib]         [k] ipoib_flush_paths
+     0.00%     0.00%             0  mdprof   [mlx5_core]        [k] mlx5i_xmit
+     0.00%     0.00%             0  mdprof   [mlx5_core]        [k] mlx5i_sq_xmit
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] arm_lpae_map
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] arm_smmu_map
+     0.00%     0.00%             1  mdprof   libc-2.28.so       [.] __mpn_mul_1
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __nlmsg_put
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __nla_reserve
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] nla_put
+     0.00%     0.00%             1  mdprof   [mlx5_core]        [k] mlx5e_poll_ico_cq
+     0.00%     0.00%             0  mdprof   [mlx5_core]        [k] mlx5e_napi_poll
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] fib_table_lookup
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] skb_free_head
+     0.00%     0.00%             1  mdprof   [rdma_cm]          [k] cma_netevent_callback
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] call_netevent_notifiers
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] atomic_notifier_call_chain
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] notifier_call_chain
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] iommu_pgsize.isra.5
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] csum_ipv6_magic
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] dma_sync_single_for_device
+     0.00%     0.00%             0  mdprof   [igb]              [k] igb_alloc_rx_buffers
+     0.00%     0.00%             1  mdprof   [libcfs]           [k] cfs_hash_spin_lock
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __wake_up_parent
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_group_exit
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_exit
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __call_rcu
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] dst_release
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] call_rcu
+     0.00%     0.00%             1  mdprof   [libcfs]           [k] cfs_hash_bd_from_key.isra.2
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] fclose@@GLIBC_2.17
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] __close_nocancel
+     0.00%     0.00%             0  mdprof   [libcfs]           [k] cfs_hash_bd_get
+     0.00%     0.00%             1  mdprof   libc-2.28.so       [.] __memcpy_generic
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] memset
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_iter_init
+     0.00%     0.00%             0  mdprof   [lov]              [k] lov_io_rw_iter_init
+     0.00%     0.00%             0  mdprof   [lov]              [k] lov_io_iter_init
+     0.00%     0.00%             0  mdprof   [lov]              [k] lov_sub_get
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_sub_init
+     0.00%     0.00%             1  mdprof   [libcfs]           [k] cfs_get_environ
+     0.00%     0.00%             0  mdprof   libc-2.28.so       [.] _IO_padn
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_rw_init
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_init
+     0.00%     0.00%             0  mdprof   [lustre]           [k] vvp_io_init
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] lustre_get_jobid
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] jobid_interpret_string
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] jobid_get_from_cache
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] jobid_get_from_environ
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] refcount_inc_not_zero
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] refcount_inc
+     0.00%     0.00%             1  mdprof   [libcfs]           [k] cfs_hash_lookup
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_start
+     0.00%     0.00%             0  mdprof   [lustre]           [k] vvp_io_write_start
+     0.00%     0.00%             0  mdprof   [lustre]           [k] vvp_io_write_commit
+     0.00%     0.00%             0  mdprof   [obdclass]         [k] cl_io_commit_async
+     0.00%     0.00%             0  mdprof   [lov]              [k] lov_io_commit_async
+     0.00%     0.00%             0  mdprof   [osc]              [k] osc_io_commit_async
+     0.00%     0.00%             0  mdprof   [osc]              [k] osc_page_cache_add
+     0.00%     0.00%             0  mdprof   [osc]              [k] osc_queue_async_io
+     0.00%     0.00%             0  mdprof   [osc]              [k] osc_quota_chkdq
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __kfree_skb_flush
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] rt_dst_alloc
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_rcv
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_rcv_finish
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_local_deliver
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_local_deliver_finish
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] ip_protocol_deliver_rcu
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_v4_rcv
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_v4_do_rcv
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_rcv_established
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] tcp_data_ready
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] __skb_clone
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] skb_clone
+     0.00%     0.00%             0  mdprof   [unknown]          [k] 0000000000000000
+     0.00%     0.00%             0  mdprof   [unknown]          [k] 0x0000ffffbda73fb8
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __arm64_sys_execve
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_execve
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] do_execveat_common
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] search_binary_handler
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] load_elf_binary
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] extract_crng
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] create_elf_tables
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] get_random_bytes
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] _get_random_bytes
+     0.00%     0.00%             1  mdprof   [kernel.kallsyms]  [k] perf_iterate_ctx.constprop.74
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] setup_new_exec
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __set_task_comm
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] perf_event_comm
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] perf_iterate_sb
+     0.00%     0.00%            15  mdprof   [kernel.kallsyms]  [k] finish_task_switch
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] schedule
+     0.00%     0.00%             0  mdprof   [kernel.kallsyms]  [k] __schedule
+     0.00%     0.00%             5  perf     [kernel.kallsyms]  [k] perf_event_exec
+     0.00%     0.00%             0  perf     [unknown]          [k] 0000000000000000
+     0.00%     0.00%             0  perf     [unknown]          [k] 0x0000ffffbda73fb8
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] el0_svc
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] el0_svc_handler
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] __arm64_sys_execve
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] do_execve
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] do_execveat_common
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] search_binary_handler
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] load_elf_binary
+     0.00%     0.00%             0  perf     [kernel.kallsyms]  [k] setup_new_exec
+
+
+#
+# (Tip: List events using substring match: perf list <keyword>)
+#
