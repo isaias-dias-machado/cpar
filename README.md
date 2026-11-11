@@ -11,101 +11,58 @@ git clone <this repo> work && cd work                    # or rsync your tree
 mkdir -p /projects/F202500010HPCVLABUMINHO/2026-2027cp/$USER/logs
 ```
 
-That `logs/` directory is mandatory: `remote/md.sbatch` asks Slurm to write
+That `logs/` directory is mandatory: the job scripts ask Slurm to write
 `logs/<jobname>-<jobid>.log` there, and a missing directory fails the job
 before your script ever starts. If your workspace directory name and `$USER`
-differ, edit the `#SBATCH --output` path in `remote/md.sbatch`.
+differ, edit the `#SBATCH --output` path in the `remote/*.sbatch` files.
 
-Seeing the knob list without submitting (works anywhere):
+### The scripts
 
-```
-MODE=help bash remote/md.sbatch
-```
+| script | submit line | what the job does | artefacts |
+|---|---|---|---|
+| `remote/recon.sh` | run by hand on the login node (see its header) | one recorded recon transcript of node facts | transcript under `/projects` |
+| `remote/md.sbatch` | `sbatch remote/md.sbatch` | build via the graded Makefile, then the `THREADS` × `REPS` timing sweep, one `RESULT threads=… wall_s=…` line per run | `results/<jobid>-timing/p<P>_r<R>/` + `logs/md-<jobid>.log` |
+| `remote/perf.sbatch` | `sbatch remote/perf.sbatch` | separate `-g` profiling binary, `perf record -g`, full `perf report -n --stdio` | `results/<jobid>-perf/{perf.data,perf-report.txt,mdprof}` + `logs/md-perf-<jobid>.log` |
 
-### First run: calibrate the wall clock
+Timing and profiling are two separate jobs on purpose: profiling needs its own
+binary and its own overhead budget, so mixing it into the timed job would
+contaminate the number that is actually graded
+(`context/topics/profiling-workflow.md`).
 
-`#SBATCH --time` is a hard ceiling *and* a scheduling hint (short jobs backfill
-sooner). Ask for too little and the sweep is cut off; ask for a week and you
-wait. Measure one run first:
+### The constants block — the only configuration
 
-```
-sbatch -J probe --export=ALL,MODE=timing,THREADS=1,REPS=1 remote/md.sbatch
-squeue --me
-tail -f /projects/F202500010HPCVLABUMINHO/2026-2027cp/$USER/logs/probe-*.log
-```
+Each `remote/*.sbatch` is self-contained and bare enough to read top to
+bottom: the constants at the top of the file (`THREADS`, `REPS`, `OPT` in
+`md.sbatch`; `FREQ`, `THREADS`, `PROF_OPT` in `perf.sbatch`) are the
+configuration, and `#SBATCH --time` is the only timeout. To change an
+experiment, edit the constants block and resubmit — there are no submit-time
+environment knobs (`--export=ALL,NAME=value`).
 
-The log's `RESULT` line gives you one serial wall time; multiply as needed for
-the `--time` of the real sweep. Note that a job bills the whole node (48 cores)
-for as long as it holds it, whatever it uses (`context/notes/Boas_Praticas.md`).
-
-### The three modes
-
-| command | what the job does | artefacts |
-|---|---|---|
-| `sbatch -J build --export=ALL,MODE=build remote/md.sbatch` | `make clean && make CFLAGS="$OPT"`, then `file ./md` so you can see it is an `aarch64` binary | log only |
-| `sbatch -J timing --export=ALL,THREADS="1 2 4 8 12 16 24 32 48",REPS=3 remote/md.sbatch` | build, then every thread count × repetition, then a cross-thread determinism check | one `RESULT` line per run + `results/<job>-timing/p<P>_r<R>/` |
-| `sbatch -J perf --export=ALL,MODE=perf,FREQ=1000 remote/md.sbatch` | separate `mdprof` build (`$PROF_OPT`) into the results dir, `perf record -g` + `perf stat` (each under `RUN_TIMEOUT`, `OMP_NUM_THREADS=PERF_THREADS`), full `perf report --stdio` in `perf-report.txt` | `results/<job>-perf/{perf.data,perf-report.txt,mdprof}` |
-
-Two separate jobs on purpose: profiling needs its own binary and its own
-overhead budget, so mixing it into the timed job would contaminate the number
-that is actually graded (`context/topics/profiling-workflow.md`).
+`#SBATCH --time` is a hard ceiling *and* a scheduling hint (short jobs
+backfill sooner); ask for too little and the sweep is cut off. A job bills the
+whole node (48 cores) for as long as it holds it, whatever it uses
+(`context/notes/Boas_Praticas.md`). Keep `THREADS` ≤ `--cpus-per-task`:
+oversubscribing invalidates the speedup curve rather than merely slowing it
+down.
 
 Keeping `perf` in a batch job has one trap: **`perf report` needs `--stdio`**,
-because a batch job has no terminal for the TUI.
+because a batch job has no terminal for the TUI. Both scripts already do
+this.
 
-### Minimal perf-only job
+### Contract for future `remote/*.sbatch`
 
-`remote/perf.sbatch` — one node, one build, `perf record -g -F 1000`, and the
-full `perf report -n --stdio` in `results/<timestamp>/perf_report.txt`:
-
-```
-sbatch remote/perf.sbatch
-```
-
-### Knobs (never edit the script to change an experiment)
-
-Pass any of them with `--export=ALL,NAME=value` — comma-free values only.
-
-| knob | default | meaning |
-|---|---|---|
-| `MODE` | `timing` | `build`, `timing`, `perf`, `help` |
-| `OPT` | `-O3 -ffast-math -fopenmp -march=native` | flags for the graded build path (`make CFLAGS=...`) |
-| `PROF_OPT` | `-O3 -fopenmp -march=native -g -fno-omit-frame-pointer` | flags for the perf-only binary |
-| `THREADS` | `1 2 4 8 12 16 24 32 48` | sweep points, one process each |
-| `REPS` | `3` | repetitions per point (report the median) |
-| `FREQ` | `1000` | perf samples per second |
-| `PERF_THREADS` | `48` | `OMP_NUM_THREADS` for the perf-mode run (whole node) |
-| `RUN_TIMEOUT` | `350` | seconds allowed per single run (timing reps and each perf command); a timeout is logged as `exit=124` and the sweep continues |
-| `TOL` | `1e-6` | relative tolerance for the determinism canary |
-| `KEEP_TRAJ` | `0` | `1` keeps `*_traj.xyz` — multi-GB per run, off by default |
-| `RESULTS_DIR` | `<repo>/results/<job>-<mode>` | where per-run directories go |
-| `OMP_PROC_BIND` / `OMP_PLACES` | `close` / `cores` | thread placement; the first-order knob on a CMG-based node (`context/topics/memory-locality.md`) |
-
-Useful `sbatch`-side overrides: `-J <name>` (log file name), `--time=HH:MM:SS`,
-`--cpus-per-task` (default: one whole node — see `context/measured/node.md`).
-
-Keep `THREADS` ≤ `--cpus-per-task`: oversubscribing invalidates the speedup
-curve rather than merely slowing it down.
-
-### Comparing flag sets
-
-```
-sbatch -J o3 --export=ALL,OPT="-O3 -fopenmp" remote/md.sbatch
-sbatch -J o3native --export=ALL,OPT="-O3 -fopenmp -march=native" remote/md.sbatch
-```
-
-One variable per comparison, and read `compiler` + `sources` from the log
-before believing two numbers are comparable — the provenance block exists to
-make that check automatic.
-
-### The determinism canary
-
-`MODE=timing` compares every `*_average.txt` against the `p=1` run and prints
-`CHECK <dir> max_rel_dev=... status=same|DIFFERS`. This is a data-race canary
-(races carry a strong penalty, `context/notes/WA1_26-27.md` §3), **not** a
-physics test: parallel floating-point sums reorder legitimately, so a small
-`DIFFERS` after parallelisation is expected — `nan`, `inf` or a large jump is
-a bug.
+1. Same `#SBATCH` header fields, same order; only `-J` and `--time` differ.
+2. `#!/bin/bash -l` + `set -euo pipefail` (batch shells don't inherit
+   login-node modules; without `-l`, `module` is undefined).
+3. One-paragraph header comment: what it is + the submit line.
+4. Constants block at the top, clearly marked — no `--export` knobs.
+5. Unconditional aarch64 guard (the login node is x86-64; a binary built there
+   dies with "Exec format error" on the compute nodes —
+   `context/measured/node.md`).
+6. Results under `results/$SLURM_JOB_ID-<name>/`; `results/` stays gitignored.
+7. Standalone: no `source` of other repo files. `#SBATCH --time` is the only
+   timeout — no per-run `timeout`. Always `< inputdata.txt` (MD `scanf`s stdin)
+   and `rm -f *_traj.xyz` after a run (multi-GB, never kept).
 
 ## Housekeeping
 

@@ -8,22 +8,59 @@
 #SBATCH --time=01:20:00
 #SBATCH --output=/projects/F202500010HPCVLABUMINHO/2026-2027cp/%u/logs/%x-%j.log
 #
-# Minimal perf job — submit from the repo root:
-#   sbatch remote/perf.sbatch
-# Report: results/<timestamp>/perf_report.txt
+# remote/perf.sbatch — profiling job: build a separate -g binary on the node
+# and record one call-graph profile of a full run. Submit from the repo root:
+#
+#     sbatch remote/perf.sbatch
+#
+# The file is the configuration: edit the constants block below to change the
+# experiment. Artefacts land in results/<jobid>-perf/, the log in
+# logs/md-perf-<jobid>.log.
 
-set -eu
+set -euo pipefail
 
-RESULTS="results/$(date +%Y-%m-%d--%H-%M)"
-mkdir -p "$RESULTS"
+# --- edit these --------------------------------------------------------------
+FREQ=1000                                                       # perf samples/s
+THREADS=48                                  # OMP_NUM_THREADS for the profiled run (whole node)
+PROF_OPT="-O3 -fopenmp -march=native -g -fno-omit-frame-pointer" # profiling binary flags
+# ------------------------------------------------------------------------------
 
-ml GCC/15.2.0
-# -fopenmp is mandatory; -g so the report has symbols. OMP_NUM_THREADS defaults
-# to all 48 cores on the node (context/measured/node.md).
-gcc -O3 -fopenmp -g src/MD.cpp -lm -o "$RESULTS/mdprof"
+# Refuse the x86-64 login node: a binary built there dies with
+# "Exec format error" on the ARM compute nodes (context/measured/node.md).
+if [[ "$(uname -m)" != "aarch64" ]]; then
+	echo "!! refusing to run on $(uname -m) — submit instead: sbatch remote/perf.sbatch" >&2
+	exit 2
+fi
 
-# MD reads inputdata.txt on stdin — the redirect is required.
-perf record -g -F 1000 -o "$RESULTS/perf.data" -- "$RESULTS/mdprof" < inputdata.txt
+workdir="${SLURM_SUBMIT_DIR:-$PWD}"
+cd "$workdir"
+results_dir="results/${SLURM_JOB_ID}-perf"
+mkdir -p "$results_dir"
 
-# No TTY in a batch job: --stdio, not the TUI.
-perf report -n --stdio -i "$RESULTS/perf.data" > "$RESULTS/perf_report.txt"
+module purge
+module load GCC/15.2.0
+
+echo "===== provenance ====="
+echo "  date      $(date -Is)"
+echo "  host      $(hostname) ($(uname -m))"
+echo "  job       $SLURM_JOB_ID"
+echo "  compiler  $(gcc --version | head -n 1)"
+
+echo "===== build — profiling binary (separate: -g must not contaminate the timed binary) ====="
+# shellcheck disable=SC2086  # PROF_OPT is intentionally word-split
+gcc $PROF_OPT src/MD.cpp -lm -o "$results_dir/mdprof"
+
+echo "===== perf record — -g -F $FREQ, OMP_NUM_THREADS=$THREADS ====="
+# MD scanf's stdin: the < inputdata.txt redirect is required.
+# Run inside the results dir so the multi-GB *_traj.xyz lands there.
+(cd "$results_dir" && OMP_NUM_THREADS="$THREADS" \
+	perf record -g -F "$FREQ" -o perf.data -- "$results_dir/mdprof" \
+	< "$workdir/inputdata.txt" > perf-run.log 2>&1)
+rm -f "$results_dir"/*_traj.xyz
+
+echo "===== perf report — full report in perf-report.txt (batch jobs have no TTY) ====="
+perf report -n --stdio -i "$results_dir/perf.data" > "$results_dir/perf-report.txt"
+sed -n '1,40p' "$results_dir/perf-report.txt" | sed 's/^/  /'
+
+echo "===== end ====="
+echo "  artefacts in $results_dir"
