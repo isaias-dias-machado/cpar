@@ -21,7 +21,7 @@
 set -euo pipefail
 
 # --- edit these --------------------------------------------------------------
-THREADS=(1 2 4 8 12 16 24 32 48)                  # sweep points (one process each)
+THREADS=(1)                  # sweep points (one process each)
 REPS=3                                            # repetitions per sweep point
 OPT="-O3 -ffast-math -fopenmp -march=native"      # graded build path (make CFLAGS=...)
 # ------------------------------------------------------------------------------
