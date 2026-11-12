@@ -487,9 +487,18 @@ double Kinetic() { // Write Function here!
   return kin;
 }
 
+static inline void pow_6_12(double base, double *x6, double *x12) {
+  double x2;
+
+  x2 = base * base;
+  *x6 = x2 * x2; // pow 4
+  *x6 = *x6 * x2;
+  *x12 = *x6 * *x6;
+}
+
 // Function to calculate the potential energy of the system
 double Potential() {
-  double quot, r2, rnorm, term1, term2, Pot;
+  double quot, r2, rnorm, Pot, *term1, *term2;
   int i, j, k;
 
   Pot = 0.;
@@ -503,10 +512,9 @@ double Potential() {
         }
         rnorm = sqrt(r2);
         quot = sigma / rnorm;
-        term1 = pow(quot, 12.);
-        term2 = pow(quot, 6.);
+        pow_6_12(quot, term1, term2);
 
-        Pot += 4 * epsilon * (term1 - term2);
+        Pot += 4 * epsilon * (*term1 - *term2);
       }
     }
   }
