@@ -1,5 +1,36 @@
 # pgXXXXX_pgYYYYY — Lennard-Jones MD (WA1, Phase 1)
 
+## Correctness canary (local, after every optimization step)
+
+`tools/compare_md_output.py` compares the known-good run's `cp_output.txt`
+against the optimized build's and fails (exit 1) when differences are too
+large to be floating-point reorder noise (legal reordering from
+`-ffast-math`/reductions stays ≤ ~1e-13 here; real bugs — lost pairs,
+races — show at ≥ 1e-5 already in the first rows, because both runs start
+from identical conditions and the argon run is only 200 steps). The sibling
+`cp_average.txt` (the graded artifact) is judged too. Pressure rows are
+advisory only (discrete wall-bounce events); the averages carry the verdict.
+
+```bash
+# once (or when the inputs change): golden output from the untouched provided code
+REPO="$(pwd)"
+mkdir -p /tmp/mdcanary/golden
+gcc -O3 -ffast-math src/baseline.cpp -lm -o /tmp/mdcanary/md
+( cd /tmp/mdcanary/golden && /tmp/mdcanary/md < "$REPO/inputdata.txt" )
+
+# after each optimization: rebuild (make), rerun (~70 s per run on a laptop), compare
+mkdir -p /tmp/mdcanary/new
+( cd /tmp/mdcanary/new && "$REPO/md" < "$REPO/inputdata.txt" )
+python3 tools/compare_md_output.py /tmp/mdcanary/golden/cp_output.txt /tmp/mdcanary/new/cp_output.txt
+```
+
+Exit `0` = optimization kept the physics; `1` = errors listed — investigate
+before keeping the optimization; `2` = a file is broken (truncation/NaN).
+Golden and candidate must come from the **same machine and inputs**.
+`--exact` requires bit-identical output — use it only on two runs of the
+*same binary* as a determinism/race alarm. Tolerances and their rationale:
+`python3 tools/compare_md_output.py --help`.
+
 ## Running on Deucalion
 
 ### One-time setup (login node, no allocation needed)
