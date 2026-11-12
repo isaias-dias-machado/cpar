@@ -98,7 +98,8 @@ double MeanSquaredVelocity();
 //  Compute total kinetic energy from particle mass and velocities
 double Kinetic();
 
-int main() {
+int main()
+{
 
   //  variable delcarations
   int i;
@@ -404,7 +405,8 @@ int main() {
   return 0;
 }
 
-void initialize() {
+void initialize()
+{
   int n, p, i, j, k;
   double pos;
 
@@ -448,7 +450,8 @@ void initialize() {
 }
 
 //  Function to calculate the averaged velocity squared
-double MeanSquaredVelocity() {
+double MeanSquaredVelocity()
+{
 
   double vx2 = 0;
   double vy2 = 0;
@@ -468,7 +471,8 @@ double MeanSquaredVelocity() {
 }
 
 //  Function to calculate the kinetic energy of the system
-double Kinetic() { // Write Function here!
+double Kinetic()
+{ // Write Function here!
 
   double v2, kin;
 
@@ -487,7 +491,8 @@ double Kinetic() { // Write Function here!
   return kin;
 }
 
-static inline void pow_6_12(double base, double *x6, double *x12) {
+static inline void pow_6_12(double base, double *x6, double *x12)
+{
   double x2;
 
   x2 = base * base;
@@ -497,7 +502,8 @@ static inline void pow_6_12(double base, double *x6, double *x12) {
 }
 
 // Function to calculate the potential energy of the system
-double Potential() {
+double Potential()
+{
   double quot, r2, rnorm, Pot, term1, term2;
   int i, j, k;
 
@@ -512,7 +518,7 @@ double Potential() {
         }
         rnorm = sqrt(r2);
         quot = sigma / rnorm;
-        pow_6_12(quot, &term1, &term2);
+        pow_6_12(quot, &term2, &term1);
 
         Pot += 4 * epsilon * (term1 - term2);
       }
@@ -525,7 +531,8 @@ double Potential() {
 //   Uses the derivative of the Lennard-Jones potential to calculate
 //   the forces on each atom.  Then uses a = F/m to calculate the
 //   accelleration of each atom.
-void computeAccelerations() {
+void computeAccelerations()
+{
   int i, j, k;
   double f, rSqd;
   double rij[3]; // position of i relative to j
@@ -561,7 +568,8 @@ void computeAccelerations() {
 }
 
 // returns sum of dv/dt*m/A (aka Pressure) from elastic collisions with walls
-double VelocityVerlet(double dt, int iter, FILE *fp) {
+double VelocityVerlet(double dt, int iter, FILE *fp)
+{
   int i, j, k;
 
   double psum = 0.;
@@ -617,7 +625,8 @@ double VelocityVerlet(double dt, int iter, FILE *fp) {
   return psum / (6 * L * L);
 }
 
-void initializeVelocities() {
+void initializeVelocities()
+{
 
   int i, j;
 
@@ -676,7 +685,8 @@ void initializeVelocities() {
 }
 
 //  Numerical recipes Gaussian distribution number generator
-double gaussdist() {
+double gaussdist()
+{
   static bool available = false;
   static double gset;
   double fac, rsq, v1, v2;
