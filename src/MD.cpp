@@ -498,7 +498,7 @@ static inline void pow_6_12(double base, double *x6, double *x12) {
 
 // Function to calculate the potential energy of the system
 double Potential() {
-  double quot, r2, rnorm, Pot, *term1, *term2;
+  double quot, r2, rnorm, Pot, term1, term2;
   int i, j, k;
 
   Pot = 0.;
@@ -512,9 +512,9 @@ double Potential() {
         }
         rnorm = sqrt(r2);
         quot = sigma / rnorm;
-        pow_6_12(quot, term1, term2);
+        pow_6_12(quot, &term1, &term2);
 
-        Pot += 4 * epsilon * (*term1 - *term2);
+        Pot += 4 * epsilon * (term1 - term2);
       }
     }
   }
