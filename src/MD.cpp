@@ -100,7 +100,7 @@ double Kinetic();
 
 int main() {
 
-  //  variable delcarations
+  //  variable declarations
   int i;
   double dt, Vol, Temp, Press, Pavg, Tavg, rho;
   double VolFac, TempFac, PressFac, timefac;
@@ -130,13 +130,11 @@ int main() {
    *     J.A. Barker , R.A. Fisher & R.O. Watts
    *     Mol. Phys., Vol. 21, 657-673 (1971)
    *
-   *     mass:     6.633e-26 kg          = one natural unit of mass for argon,
-   * by definition energy:   1.96183e-21 J      = one natural unit of energy for
-   * argon, directly from L-J parameters length:   3.3605e-10  m         = one
-   * natural unit of length for argon, directly from L-J parameters
-   *     volume:   3.79499-29 m^3        = one natural unit of volume for argon,
-   * by length^3 time:     1.951e-12 s           = one natural unit of time for
-   * argon, by length*sqrt(mass/energy)
+   * mass:     6.633e-26 kg                                  = one natural unit of mass for argon,
+   * energy:   1.96183e-21 J                                 = one natural unit of energy for argon, 
+   * directly from L-J parameters, length:   3.3605e-10  m   = one natural unit of length for argon, 
+   * directly from L-J parameters, volume:   3.79499-29 m^3  = one natural unit of volume for argon, by length^3
+   * time:     1.951e-12 s                                   = one natural unit of time for argon, by length*sqrt(mass/energy)
    ***************************************************************************************/
 
   //  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -172,7 +170,7 @@ int main() {
     VolFac = 3.7949992920124995e-29;
     PressFac = 51695201.06691862;
     TempFac = 142.0950000000000;
-    timefac = 2.09618e-12;
+    timefac = 2.09618e-12; // why is it different from the table above?
     // strcpy(atype,"Ar");
 
   } else if (strcmp(atype, "Kr") == 0) {
@@ -236,10 +234,18 @@ int main() {
            MAXPART);
     exit(0);
   }
+
+  /**
+   * Van der Waals (VDW) radius é a metade da distância mínima entre os núcleos
+   * de dois átomos idênticos (não ligados covalentemente) quando eles estão
+   * o mais próximo possível um do outro, antes que as forças repulsivas entre 
+   * suas nuvens eletrônicas impeçam uma aproximação maior.
+   * 
+  */
   //  Check to see if the volume makes sense - is it too small?
-  //  Remember VDW radius of the particles is 1 natural unit of length
-  //  and volume = L*L*L, so if V = N*L*L*L = N, then all the particles
-  //  will be initialized with an interparticle separation equal to 2xVDW radius
+  //  Remember VDW radius of the particles is 1/2 * natural unit of length
+  //  and (volume) V = L*L*L, so if V = N*L*L*L = N, then all the particles
+  //  will be initialized with an interparticle separation equal to 2xVDW = L (= V) radius
   if (Vol < N) {
 
     printf("\n\n\n  YOUR DENSITY IS VERY HIGH!\n\n");
@@ -345,12 +351,15 @@ int main() {
     PE = Potential();
 
     // Temperature from Kinetic Theory
+    // kB = 1.
     Temp = m * mvs / (3 * kB) * TempFac;
 
     // Instantaneous gas constant and compressibility - not well defined because
     // pressure may be zero in some instances because there will be zero wall
     // collisions, pressure may be very high in some instances because there
     // will be a number of collisions
+
+    // TODO: understand the formulas below
     gc = NA * Press * (Vol * VolFac) / (N * Temp);
     Z = Press * (Vol * VolFac) / (N * kBSI * Temp);
 
@@ -488,6 +497,7 @@ double Kinetic() { // Write Function here!
 }
 
 // Function to calculate the potential energy of the system
+// TODO: de onde veio essa formula?
 double Potential() {
   double quot, r2, rnorm, term1, term2, Pot;
   int i, j, k;
@@ -502,10 +512,12 @@ double Potential() {
           r2 += (r[i][k] - r[j][k]) * (r[i][k] - r[j][k]);
         }
         rnorm = sqrt(r2);
-        quot = sigma / rnorm;
-        term1 = pow(quot, 12.);
-        term2 = pow(quot, 6.);
+        quot = sigma / rnorm;   // 1. / rnorm;
+        term1 = pow(quot, 12.); // pow(1./rnorm,12.);
+        term2 = pow(quot, 6.);  // pow(1./rnorm,6.);
 
+        // pot = 4 * 1 * (1/r^12 - 1/r^6)
+        // TODO: de onde veio essa formula?
         Pot += 4 * epsilon * (term1 - term2);
       }
     }
@@ -552,27 +564,38 @@ void computeAccelerations() {
   }
 }
 
+// pressure = force (F) / (A) area -> pressure = (m * dv/dt) / A (area)
 // returns sum of dv/dt*m/A (aka Pressure) from elastic collisions with walls
+// Uniform Acceleration Equations (https://physics.info/motion-equations/)
+//
+// computes:
+// r (position) , v (velocity)
+// then updates a (acceleration) from new r (position)
+// then updates v (velocity) from new a (acceleration) 
 double VelocityVerlet(double dt, int iter, FILE *fp) {
-  int i, j, k;
+  int i, j;
 
   double psum = 0.;
 
   //  Compute accelerations from forces at current position
   // this call was removed (commented) for predagogical reasons
-  // computeAccelerations();
-  //  Update positions and velocity with current velocity and acceleration
+  // computeAccelerations(); <-- why ? so the loop below on the first run computes r and v with a = 0 ?
+
+  //  Update positions and velocity with current velocity and (old) acceleration (?)
   // printf("  Updated Positions!\n");
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
+      // r = r + v*dt + a/2*dt^2 -> one of the Uniform Acceleration formulas
       r[i][j] += v[i][j] * dt + 0.5 * a[i][j] * dt * dt;
 
+      // v(t+1) = v(t) + ( 1/2 * a * dt)
       v[i][j] += 0.5 * a[i][j] * dt;
     }
     // printf("  %i  %6.4e   %6.4e   %6.4e\n",i,r[i][0],r[i][1],r[i][2]);
   }
   //  Update accellerations from updated positions
   computeAccelerations();
+
   //  Update velocity with updated acceleration
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
@@ -606,7 +629,10 @@ double VelocityVerlet(double dt, int iter, FILE *fp) {
   }*/
   // fprintf(fp,"\n \n");
 
-  return psum / (6 * L * L);
+  // Vol = L*L*L;
+  // Length of the box in natural units:
+  //     L = pow(Vol, (1./3.));
+  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 = area of a wall) * 6 walls
 }
 
 void initializeVelocities() {
@@ -621,8 +647,10 @@ void initializeVelocities() {
     }
   }
 
-  // Vcm = sum_i^N  m*v_i/  sum_i^N  M
   // Compute center-of-mas velocity according to the formula above
+  // Para um sistema com n partículas, a velocidade do centro de massa é
+  // dada pela razão entre a soma vetorial dos momentos lineares (quantidade de movimento) de cada parte e a massa total do sistema
+  // i.e., vCM = (1/(N*m)) * sum(m*v[i]) ; N*m = massa total do sistema, porque cada partícula tem massa m
   double vCM[3] = {0, 0, 0};
 
   for (i = 0; i < N; i++) {
@@ -632,8 +660,9 @@ void initializeVelocities() {
     }
   }
 
-  for (i = 0; i < 3; i++)
+  for (i = 0; i < 3; i++){
     vCM[i] /= N * m;
+  }
 
   //  Subtract out the center-of-mass velocity from the
   //  velocity of each particle... effectively set the
@@ -657,6 +686,7 @@ void initializeVelocities() {
     }
   }
 
+  // TODO: de onde veio essa formula?
   lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
 
   for (i = 0; i < N; i++) {
