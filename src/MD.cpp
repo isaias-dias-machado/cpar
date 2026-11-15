@@ -52,9 +52,9 @@ int N;
 double sigma = 1.;
 double epsilon = 1.;
 double m = 1.;
-double kB = 1.;
+double kB = 1.; // representative Boltzmann constant
 
-double NA = 6.022140857e23;
+double NA = 6.022140857e23; // mole = quantity of particles
 double kBSI = 1.38064852e-23; // m^2*kg/(s^2*K)
 
 //  Size of box, which will be specified in natural units
@@ -102,8 +102,19 @@ int main() {
 
   //  variable declarations
   int i;
-  double dt, Vol, Temp, Press, Pavg, Tavg, rho;
+  double dt, Vol, Temp, Press, Pavg, Tavg;
+  double rho; // gas density in moles/m^3
+  /**
+   * Inside the simulation, everything is expressed in units built from the Lennard-Jones
+   * parameters, so that σ = ε = m = k_B = 1. The four *Fac variables are the bridges back
+   * to SI: multiply a natural-unit value by its factor to get SI units, and divide an SI
+   * value by it to get natural units.
+   */
   double VolFac, TempFac, PressFac, timefac;
+  /**
+   * Z = compressibility factor
+   * gc (aka R) = ideal gas universal constant
+   */
   double KE, PE, mvs, gc, Z;
   char trash[10000], prefix[1000], tfn[1000], ofn[1000], afn[1000];
   FILE *infp, *tfp, *ofp, *afp;
@@ -130,11 +141,11 @@ int main() {
    *     J.A. Barker , R.A. Fisher & R.O. Watts
    *     Mol. Phys., Vol. 21, 657-673 (1971)
    *
-   * mass:     6.633e-26 kg                                  = one natural unit of mass for argon,
-   * energy:   1.96183e-21 J                                 = one natural unit of energy for argon, 
-   * directly from L-J parameters, length:   3.3605e-10  m   = one natural unit of length for argon, 
-   * directly from L-J parameters, volume:   3.79499-29 m^3  = one natural unit of volume for argon, by length^3
-   * time:     1.951e-12 s                                   = one natural unit of time for argon, by length*sqrt(mass/energy)
+   *     mass:     6.633e-26 kg       = one natural unit of mass for argon, by definition
+   *     energy:   1.96183e-21 J      = one natural unit of energy for argon, directly from L-J parameters
+   *     length:   3.3605e-10  m      = one natural unit of length for argon, directly from L-J parameters
+   *     volume:   3.79499-29 m^3     = one natural unit of volume for argon, by length^3
+   *     time:     1.951e-12 s        = one natural unit of time for argon, by length*sqrt(mass/energy)
    ***************************************************************************************/
 
   //  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -168,9 +179,9 @@ int main() {
   } else if (strcmp(atype, "Ar") == 0) {
 
     VolFac = 3.7949992920124995e-29;
-    PressFac = 51695201.06691862;
-    TempFac = 142.0950000000000;
-    timefac = 2.09618e-12; // why is it different from the table above?
+    PressFac = 51695201.06691862; // pressure = force/area(N/m^2). Since J = N*m -> N = J/m, then pressure = energy/volume (J/m^3)
+    TempFac = 142.0950000000000;  // T = energy/k_B
+    timefac = 2.09618e-12; // TODO: why is it different from the table above?
     // strcpy(atype,"Ar");
 
   } else if (strcmp(atype, "Kr") == 0) {
@@ -222,9 +233,8 @@ int main() {
   scanf("%lf", &rho);
 
   N = 5000;
-  Vol = N / (rho * NA);
-
-  Vol /= VolFac;
+  Vol = N / (rho * NA); // N/NA = moles; moles/(mol/m³) = m³
+  Vol /= VolFac; // m³ -> σ³
 
   //  Limiting N to MAXPART for practical reasons
   if (N >= MAXPART) {
@@ -281,7 +291,8 @@ int main() {
     NumTime = 50000;
   } else {
     dt = 0.5e-14 / timefac;
-    NumTime = 200;
+    NumTime = 200; 
+    // NumTime = 20000 // original code
   }
 
   //  Put all the atoms in simple crystal lattice and give them random
@@ -352,6 +363,7 @@ int main() {
 
     // Temperature from Kinetic Theory
     // kB = 1.
+    // m = 1.
     Temp = m * mvs / (3 * kB) * TempFac;
 
     // Instantaneous gas constant and compressibility - not well defined because
@@ -359,8 +371,7 @@ int main() {
     // collisions, pressure may be very high in some instances because there
     // will be a number of collisions
 
-    // TODO: understand the formulas below
-    gc = NA * Press * (Vol * VolFac) / (N * Temp);
+    gc = NA * Press * (Vol * VolFac) / (N * Temp); // comes from PV = nRT with n = N/N_A, solved for R
     Z = Press * (Vol * VolFac) / (N * kBSI * Temp);
 
     Tavg += Temp;
@@ -497,7 +508,6 @@ double Kinetic() { // Write Function here!
 }
 
 // Function to calculate the potential energy of the system
-// TODO: de onde veio essa formula?
 double Potential() {
   double quot, r2, rnorm, term1, term2, Pot;
   int i, j, k;
@@ -516,8 +526,8 @@ double Potential() {
         term1 = pow(quot, 12.); // pow(1./rnorm,12.);
         term2 = pow(quot, 6.);  // pow(1./rnorm,6.);
 
-        // pot = 4 * 1 * (1/r^12 - 1/r^6)
-        // TODO: de onde veio essa formula?
+        // Lennard-Jones 12-6 potential: V(r) = 4ε[(σ/r)¹² − (σ/r)⁶]
+        // pot = 4 * 1 * (1/r^12 - 1/r^6) 
         Pot += 4 * epsilon * (term1 - term2);
       }
     }
@@ -554,7 +564,7 @@ void computeAccelerations() {
 
       //  From derivative of Lennard-Jones with sigma and epsilon set equal to 1
       //  in natural units!
-      f = 24 * (2 * pow(rSqd, -7) - pow(rSqd, -4));
+      f = 24 * (2 * pow(rSqd, -7) - pow(rSqd, -4)); // TODO: pow() is too slow, compute inv = 1/rSqd once and multiply.
       for (k = 0; k < 3; k++) {
         //  from F = ma, where m = 1 in natural units!
         a[i][k] += rij[k] * f; // `a` - accelerations matrix
@@ -564,14 +574,21 @@ void computeAccelerations() {
   }
 }
 
-// pressure = force (F) / (A) area -> pressure = (m * dv/dt) / A (area)
-// returns sum of dv/dt*m/A (aka Pressure) from elastic collisions with walls
-// Uniform Acceleration Equations (https://physics.info/motion-equations/)
-//
-// computes:
-// r (position) , v (velocity)
-// then updates a (acceleration) from new r (position)
-// then updates v (velocity) from new a (acceleration) 
+
+/**
+ * 
+ * What Velocity Verlet does:
+ * 
+ * - Update r with the old a: r += v·dt + ½a·dt²
+ * - Half-kick: v += ½a·dt
+ * - Recompute a at the new r
+ * - Second half-kick: v += ½a·dt
+ * - Returns sum of dv/dt*m/A (aka Pressure) from elastic collisions with walls
+ * 
+ * References:
+ * - Uniform Acceleration Equations (https://physics.info/motion-equations/)
+ * - pressure = force/area -> pressure = (m * dv/dt) / A (area)
+ */
 double VelocityVerlet(double dt, int iter, FILE *fp) {
   int i, j;
 
@@ -579,16 +596,14 @@ double VelocityVerlet(double dt, int iter, FILE *fp) {
 
   //  Compute accelerations from forces at current position
   // this call was removed (commented) for predagogical reasons
-  // computeAccelerations(); <-- why ? so the loop below on the first run computes r and v with a = 0 ?
+  // computeAccelerations();
 
-  //  Update positions and velocity with current velocity and (old) acceleration (?)
-  // printf("  Updated Positions!\n");
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
       // r = r + v*dt + a/2*dt^2 -> one of the Uniform Acceleration formulas
       r[i][j] += v[i][j] * dt + 0.5 * a[i][j] * dt * dt;
 
-      // v(t+1) = v(t) + ( 1/2 * a * dt)
+      // Half-kick: v += ½a·dt
       v[i][j] += 0.5 * a[i][j] * dt;
     }
     // printf("  %i  %6.4e   %6.4e   %6.4e\n",i,r[i][0],r[i][1],r[i][2]);
@@ -599,6 +614,7 @@ double VelocityVerlet(double dt, int iter, FILE *fp) {
   //  Update velocity with updated acceleration
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
+      // Second half-kick: v += ½a·dt
       v[i][j] += 0.5 * a[i][j] * dt;
     }
   }
@@ -677,6 +693,7 @@ void initializeVelocities() {
 
   //  Now we want to scale the average velocity of the system
   //  by a factor which is consistent with our initial temperature, Tinit
+  //  TODO: compute this loop along the loop above to avoid a second loop over the particles
   double vSqdSum, lambda;
   vSqdSum = 0.;
   for (i = 0; i < N; i++) {
@@ -686,7 +703,7 @@ void initializeVelocities() {
     }
   }
 
-  // TODO: de onde veio essa formula?
+  // Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity -> N-1)
   lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
 
   for (i = 0; i < N; i++) {
