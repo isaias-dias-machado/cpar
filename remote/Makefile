@@ -4,7 +4,7 @@ SRC = src/
 BUILD = build/
 RESULTS ?= results$(VERSION)
 
-CFLAGS = -g -O3 -march=native -fno-omit-frame-pointer
+CFLAGS = -g -O3 -fopenmp -march=native -fno-omit-frame-pointer
 
 .DEFAULT_GOAL = md
 
