@@ -54,7 +54,7 @@ double epsilon = 1.;
 double m = 1.;
 double kB = 1.; // representative Boltzmann constant
 
-double NA = 6.022140857e23; // mole = quantity of particles
+double NA = 6.022140857e23;   // mole = quantity of particles
 double kBSI = 1.38064852e-23; // m^2*kg/(s^2*K)
 
 //  Size of box, which will be specified in natural units
@@ -98,17 +98,18 @@ double MeanSquaredVelocity();
 //  Compute total kinetic energy from particle mass and velocities
 double Kinetic();
 
-int main() {
+int main()
+{
 
   //  variable declarations
   int i;
   double dt, Vol, Temp, Press, Pavg, Tavg;
   double rho; // gas density in moles/m^3
   /**
-   * Inside the simulation, everything is expressed in units built from the Lennard-Jones
-   * parameters, so that σ = ε = m = k_B = 1. The four *Fac variables are the bridges back
-   * to SI: multiply a natural-unit value by its factor to get SI units, and divide an SI
-   * value by it to get natural units.
+   * Inside the simulation, everything is expressed in units built from the
+   * Lennard-Jones parameters, so that σ = ε = m = k_B = 1. The four *Fac
+   * variables are the bridges back to SI: multiply a natural-unit value by its
+   * factor to get SI units, and divide an SI value by it to get natural units.
    */
   double VolFac, TempFac, PressFac, timefac;
   /**
@@ -141,11 +142,13 @@ int main() {
    *     J.A. Barker , R.A. Fisher & R.O. Watts
    *     Mol. Phys., Vol. 21, 657-673 (1971)
    *
-   *     mass:     6.633e-26 kg       = one natural unit of mass for argon, by definition
-   *     energy:   1.96183e-21 J      = one natural unit of energy for argon, directly from L-J parameters
-   *     length:   3.3605e-10  m      = one natural unit of length for argon, directly from L-J parameters
-   *     volume:   3.79499-29 m^3     = one natural unit of volume for argon, by length^3
-   *     time:     1.951e-12 s        = one natural unit of time for argon, by length*sqrt(mass/energy)
+   *     mass:     6.633e-26 kg       = one natural unit of mass for argon, by
+   * definition energy:   1.96183e-21 J      = one natural unit of energy for
+   * argon, directly from L-J parameters length:   3.3605e-10  m      = one
+   * natural unit of length for argon, directly from L-J parameters
+   *     volume:   3.79499-29 m^3     = one natural unit of volume for argon, by
+   * length^3 time:     1.951e-12 s        = one natural unit of time for argon,
+   * by length*sqrt(mass/energy)
    ***************************************************************************************/
 
   //  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -179,8 +182,10 @@ int main() {
   } else if (strcmp(atype, "Ar") == 0) {
 
     VolFac = 3.7949992920124995e-29;
-    PressFac = 51695201.06691862; // pressure = force/area(N/m^2). Since J = N*m -> N = J/m, then pressure = energy/volume (J/m^3)
-    TempFac = 142.0950000000000;  // T = energy/k_B
+    PressFac =
+        51695201.06691862; // pressure = force/area(N/m^2). Since J = N*m -> N =
+                           // J/m, then pressure = energy/volume (J/m^3)
+    TempFac = 142.0950000000000; // T = energy/k_B
     timefac = 2.09618e-12; // TODO: why is it different from the table above?
     // strcpy(atype,"Ar");
 
@@ -234,7 +239,7 @@ int main() {
 
   N = 5000;
   Vol = N / (rho * NA); // N/NA = moles; moles/(mol/m³) = m³
-  Vol /= VolFac; // m³ -> σ³
+  Vol /= VolFac;        // m³ -> σ³
 
   //  Limiting N to MAXPART for practical reasons
   if (N >= MAXPART) {
@@ -248,14 +253,15 @@ int main() {
   /**
    * Van der Waals (VDW) radius é a metade da distância mínima entre os núcleos
    * de dois átomos idênticos (não ligados covalentemente) quando eles estão
-   * o mais próximo possível um do outro, antes que as forças repulsivas entre 
+   * o mais próximo possível um do outro, antes que as forças repulsivas entre
    * suas nuvens eletrônicas impeçam uma aproximação maior.
-   * 
-  */
+   *
+   */
   //  Check to see if the volume makes sense - is it too small?
   //  Remember VDW radius of the particles is 1/2 * natural unit of length
   //  and (volume) V = L*L*L, so if V = N*L*L*L = N, then all the particles
-  //  will be initialized with an interparticle separation equal to 2xVDW = L (= V) radius
+  //  will be initialized with an interparticle separation equal to 2xVDW = L (=
+  //  V) radius
   if (Vol < N) {
 
     printf("\n\n\n  YOUR DENSITY IS VERY HIGH!\n\n");
@@ -291,7 +297,7 @@ int main() {
     NumTime = 50000;
   } else {
     dt = 0.5e-14 / timefac;
-    NumTime = 200; 
+    NumTime = 200;
     // NumTime = 20000 // original code
   }
 
@@ -371,7 +377,11 @@ int main() {
     // collisions, pressure may be very high in some instances because there
     // will be a number of collisions
 
-    gc = NA * Press * (Vol * VolFac) / (N * Temp); // comes from PV = nRT with n = N/N_A, solved for R
+    // isaias: gc value is not used until its next assignment
+    gc = NA * Press * (Vol * VolFac) /
+         (N * Temp); // comes from PV = nRT with n = N/N_A, solved for R
+
+    // isaias: Z value is not used until its next assignment
     Z = Press * (Vol * VolFac) / (N * kBSI * Temp);
 
     Tavg += Temp;
@@ -424,7 +434,8 @@ int main() {
   return 0;
 }
 
-void initialize() {
+void initialize()
+{
   int n, p, i, j, k;
   double pos;
 
@@ -468,7 +479,8 @@ void initialize() {
 }
 
 //  Function to calculate the averaged velocity squared
-double MeanSquaredVelocity() {
+double MeanSquaredVelocity()
+{
 
   double vx2 = 0;
   double vy2 = 0;
@@ -488,7 +500,8 @@ double MeanSquaredVelocity() {
 }
 
 //  Function to calculate the kinetic energy of the system
-double Kinetic() { // Write Function here!
+double Kinetic()
+{ // Write Function here!
 
   double v2, kin;
 
@@ -508,7 +521,8 @@ double Kinetic() { // Write Function here!
 }
 
 // Function to calculate the potential energy of the system
-double Potential() {
+double Potential()
+{
   double quot, r2, rnorm, term1, term2, Pot;
   int i, j, k;
 
@@ -527,7 +541,7 @@ double Potential() {
         term2 = pow(quot, 6.);  // pow(1./rnorm,6.);
 
         // Lennard-Jones 12-6 potential: V(r) = 4ε[(σ/r)¹² − (σ/r)⁶]
-        // pot = 4 * 1 * (1/r^12 - 1/r^6) 
+        // pot = 4 * 1 * (1/r^12 - 1/r^6)
         Pot += 4 * epsilon * (term1 - term2);
       }
     }
@@ -539,7 +553,8 @@ double Potential() {
 //   Uses the derivative of the Lennard-Jones potential to calculate
 //   the forces on each atom.  Then uses a = F/m to calculate the
 //   accelleration of each atom.
-void computeAccelerations() {
+void computeAccelerations()
+{
   int i, j, k;
   double f, rSqd;
   double rij[3]; // position of i relative to j
@@ -564,7 +579,9 @@ void computeAccelerations() {
 
       //  From derivative of Lennard-Jones with sigma and epsilon set equal to 1
       //  in natural units!
-      f = 24 * (2 * pow(rSqd, -7) - pow(rSqd, -4)); // TODO: pow() is too slow, compute inv = 1/rSqd once and multiply.
+      f = 24 * (2 * pow(rSqd, -7) -
+                pow(rSqd, -4)); // TODO: pow() is too slow, compute inv = 1/rSqd
+                                // once and multiply.
       for (k = 0; k < 3; k++) {
         //  from F = ma, where m = 1 in natural units!
         a[i][k] += rij[k] * f; // `a` - accelerations matrix
@@ -574,22 +591,22 @@ void computeAccelerations() {
   }
 }
 
-
 /**
- * 
+ *
  * What Velocity Verlet does:
- * 
+ *
  * - Update r with the old a: r += v·dt + ½a·dt²
  * - Half-kick: v += ½a·dt
  * - Recompute a at the new r
  * - Second half-kick: v += ½a·dt
  * - Returns sum of dv/dt*m/A (aka Pressure) from elastic collisions with walls
- * 
+ *
  * References:
  * - Uniform Acceleration Equations (https://physics.info/motion-equations/)
  * - pressure = force/area -> pressure = (m * dv/dt) / A (area)
  */
-double VelocityVerlet(double dt, int iter, FILE *fp) {
+double VelocityVerlet(double dt, int iter, FILE *fp)
+{
   int i, j;
 
   double psum = 0.;
@@ -648,10 +665,12 @@ double VelocityVerlet(double dt, int iter, FILE *fp) {
   // Vol = L*L*L;
   // Length of the box in natural units:
   //     L = pow(Vol, (1./3.));
-  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 = area of a wall) * 6 walls
+  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 =
+                             // area of a wall) * 6 walls
 }
 
-void initializeVelocities() {
+void initializeVelocities()
+{
 
   int i, j;
 
@@ -665,8 +684,10 @@ void initializeVelocities() {
 
   // Compute center-of-mas velocity according to the formula above
   // Para um sistema com n partículas, a velocidade do centro de massa é
-  // dada pela razão entre a soma vetorial dos momentos lineares (quantidade de movimento) de cada parte e a massa total do sistema
-  // i.e., vCM = (1/(N*m)) * sum(m*v[i]) ; N*m = massa total do sistema, porque cada partícula tem massa m
+  // dada pela razão entre a soma vetorial dos momentos lineares (quantidade de
+  // movimento) de cada parte e a massa total do sistema i.e., vCM = (1/(N*m)) *
+  // sum(m*v[i]) ; N*m = massa total do sistema, porque cada partícula tem massa
+  // m
   double vCM[3] = {0, 0, 0};
 
   for (i = 0; i < N; i++) {
@@ -676,7 +697,7 @@ void initializeVelocities() {
     }
   }
 
-  for (i = 0; i < 3; i++){
+  for (i = 0; i < 3; i++) {
     vCM[i] /= N * m;
   }
 
@@ -693,7 +714,8 @@ void initializeVelocities() {
 
   //  Now we want to scale the average velocity of the system
   //  by a factor which is consistent with our initial temperature, Tinit
-  //  TODO: compute this loop along the loop above to avoid a second loop over the particles
+  //  TODO: compute this loop along the loop above to avoid a second loop over
+  //  the particles
   double vSqdSum, lambda;
   vSqdSum = 0.;
   for (i = 0; i < N; i++) {
@@ -703,7 +725,8 @@ void initializeVelocities() {
     }
   }
 
-  // Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity -> N-1)
+  // Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity ->
+  // N-1)
   lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
 
   for (i = 0; i < N; i++) {
@@ -715,7 +738,8 @@ void initializeVelocities() {
 }
 
 //  Numerical recipes Gaussian distribution number generator
-double gaussdist() {
+double gaussdist()
+{
   static bool available = false;
   static double gset;
   double fac, rsq, v1, v2;
