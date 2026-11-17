@@ -237,7 +237,8 @@ int main()
 
   scanf("%lf", &rho);
 
-  N = 5000;
+  // N = 5000;
+  N = 1000;
   Vol = N / (rho * NA); // N/NA = moles; moles/(mol/m³) = m³
   Vol /= VolFac;        // m³ -> σ³
 
@@ -500,8 +501,7 @@ double MeanSquaredVelocity()
 }
 
 //  Function to calculate the kinetic energy of the system
-double Kinetic()
-{ // Write Function here!
+double Kinetic() {
 
   double v2, kin;
 
@@ -526,7 +526,12 @@ double Potential()
   double quot, r2, rnorm, term1, term2, Pot;
   int i, j, k;
 
+  // auxiliary variables for pow computation
+  double quot2, quot4;
+
   Pot = 0.;
+
+  // TODO: distribute the work of computing the potential energy among the threads and reduce the results to a single value for Pot
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
 
@@ -535,10 +540,16 @@ double Potential()
         for (k = 0; k < 3; k++) {
           r2 += (r[i][k] - r[j][k]) * (r[i][k] - r[j][k]);
         }
+        // first, optimize the pow calculation below
         rnorm = sqrt(r2);
         quot = sigma / rnorm;   // 1. / rnorm;
-        term1 = pow(quot, 12.); // pow(1./rnorm,12.);
-        term2 = pow(quot, 6.);  // pow(1./rnorm,6.);
+
+        // term2 computation with multiplication instead of pow() for better performance
+        quot2 = quot * quot;       // (σ/r)^2
+        quot4 = quot2 * quot2;     // (σ/r)^4
+
+        term2 = quot2 *quot4;  // pow(1./rnorm,6.);
+        term1 = term2 * term2; // pow(1./rnorm,12.);
 
         // Lennard-Jones 12-6 potential: V(r) = 4ε[(σ/r)¹² − (σ/r)⁶]
         // pot = 4 * 1 * (1/r^12 - 1/r^6)
@@ -557,6 +568,7 @@ void computeAccelerations()
 {
   int i, j, k;
   double f, rSqd;
+  double rSqdInv, rSqd2; // auxiliary variable for pow computation
   double rij[3]; // position of i relative to j
 
   // inicializa a 0 a matriz de aceleracoes
@@ -579,9 +591,9 @@ void computeAccelerations()
 
       //  From derivative of Lennard-Jones with sigma and epsilon set equal to 1
       //  in natural units!
-      f = 24 * (2 * pow(rSqd, -7) -
-                pow(rSqd, -4)); // TODO: pow() is too slow, compute inv = 1/rSqd
-                                // once and multiply.
+      rSqdInv = (1. / rSqd);
+      rSqd2 = rSqdInv * rSqdInv;
+      f = 24 * (2 * (rSqd2 * rSqd2 * rSqd2 * rSqdInv) - (rSqd2 * rSqd2)); // f = 24 * (2 * pow(rSqd, -7) - pow(rSqd, -4));
       for (k = 0; k < 3; k++) {
         //  from F = ma, where m = 1 in natural units!
         a[i][k] += rij[k] * f; // `a` - accelerations matrix
@@ -625,20 +637,27 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
     }
     // printf("  %i  %6.4e   %6.4e   %6.4e\n",i,r[i][0],r[i][1],r[i][2]);
   }
+
   //  Update accellerations from updated positions
   computeAccelerations();
 
-  //  Update velocity with updated acceleration
+  /**
+   * The loop below:
+   *  1. Updates velocity with updated acceleration
+   *  2. Flips velocity if particle is outside the box
+   *  3. Computes pressure from wall collisions
+   * 
+   * Warning:
+   *  The code below does not update the position of the particle after it collides with the wall,
+   *  which means that the particle will be outside the box after the collision. 
+   *  This can interfere with the interactions with other particles, because the distance will be larger than it should be. A possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the collision.
+   */
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
       // Second half-kick: v += ½a·dt
       v[i][j] += 0.5 * a[i][j] * dt;
-    }
-  }
-
-  // Elastic walls
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < 3; j++) {
+      
+      // TODO: shouldnt we set r[i][j] = 0. here? or r[i][j] = -r[i][j]?
       if (r[i][j] < 0.) {
         v[i][j] *= -1.; //- elastic walls
         psum += 2 * m * fabs(v[i][j]) /
@@ -662,25 +681,13 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
   }*/
   // fprintf(fp,"\n \n");
 
-  // Vol = L*L*L;
-  // Length of the box in natural units:
-  //     L = pow(Vol, (1./3.));
-  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 =
-                             // area of a wall) * 6 walls
+  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 = area of a wall) * 6 walls
 }
 
 void initializeVelocities()
 {
 
   int i, j;
-
-  for (i = 0; i < N; i++) {
-
-    for (j = 0; j < 3; j++) {
-      //  Pull a number from a Gaussian Distribution
-      v[i][j] = gaussdist();
-    }
-  }
 
   // Compute center-of-mas velocity according to the formula above
   // Para um sistema com n partículas, a velocidade do centro de massa é
@@ -689,45 +696,40 @@ void initializeVelocities()
   // sum(m*v[i]) ; N*m = massa total do sistema, porque cada partícula tem massa
   // m
   double vCM[3] = {0, 0, 0};
-
+  
+  // sum(m*v[i]) / m * N = (1/N) * sum(x) 
+  // -> m * sum(v[i]) / m * N 
+  // -> sum(v[i]) / N
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
 
-      vCM[j] += m * v[i][j];
+      v[i][j] = gaussdist(); //  Pull a number from a Gaussian Distribution
+      vCM[j] += v[i][j];
     }
   }
 
-  for (i = 0; i < 3; i++) {
-    vCM[i] /= N * m;
+  for (i = 0; i < 3; i++){
+    vCM[i] /= N;
   }
 
   //  Subtract out the center-of-mass velocity from the
   //  velocity of each particle... effectively set the
   //  center of mass velocity to zero so that the system does
   //  not drift in space!
+  //  And compute the average velocity squared for the system, which is related to the temperature of the system
+  double vSqdSum = 0.;
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
 
       v[i][j] -= vCM[j];
-    }
-  }
-
-  //  Now we want to scale the average velocity of the system
-  //  by a factor which is consistent with our initial temperature, Tinit
-  //  TODO: compute this loop along the loop above to avoid a second loop over
-  //  the particles
-  double vSqdSum, lambda;
-  vSqdSum = 0.;
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < 3; j++) {
-
       vSqdSum += v[i][j] * v[i][j];
     }
   }
-
-  // Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity ->
-  // N-1)
-  lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
+  
+  //  Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity -> N-1)
+  //  Now we want to scale the average velocity of the system
+  //  by a factor which is consistent with our initial temperature, Tinit
+  double lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
 
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {

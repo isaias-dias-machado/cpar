@@ -1,0 +1,28 @@
+# Simulate original code, with N = 1000
+
+VERSION=_original sbatch --export=ALL submit-job.sh
+
+This uses:
+- Source: src/MD_original.cpp
+- Executable: build/md_original
+- Results: results_original/
+
+# Simulate any version of the code, with N = 1000
+
+VERSION=_pow sbatch --export=ALL submit-job.sh
+
+Note: the src/MD_pow.cpp file needs to exist!
+
+This uses:
+- Source: src/MD_pow.cpp
+- Executable: build/md_pow
+- Results: results_pow/
+
+or simply
+
+sbatch submit-job.sh
+
+This uses:
+- Source: src/MD.cpp
+- Executable: build/md
+- Results: results/
