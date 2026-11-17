@@ -45,6 +45,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <omp.h>
+
 // Number of particles
 int N;
 
@@ -53,6 +55,9 @@ double sigma = 1.;
 double epsilon = 1.;
 double m = 1.;
 double kB = 1.; // representative Boltzmann constant
+
+// Potential energy, filled by computeAccelerations()
+double Epot = 0.;
 
 double NA = 6.022140857e23;   // mole = quantity of particles
 double kBSI = 1.38064852e-23; // m^2*kg/(s^2*K)
@@ -237,8 +242,7 @@ int main()
 
   scanf("%lf", &rho);
 
-  // N = 5000;
-  N = 1000;
+  N = 5000;
   Vol = N / (rho * NA); // N/NA = moles; moles/(mol/m³) = m³
   Vol /= VolFac;        // m³ -> σ³
 
@@ -501,106 +505,115 @@ double MeanSquaredVelocity()
 }
 
 //  Function to calculate the kinetic energy of the system
+//  Since it's a small loop, so it's not worth parallelizing it with OpenMP
 double Kinetic() {
 
-  double v2, kin;
+  double sum = 0.;
 
-  kin = 0.;
   for (int i = 0; i < N; i++) {
-
-    v2 = 0.;
     for (int j = 0; j < 3; j++) {
-
-      v2 += v[i][j] * v[i][j];
+      sum += v[i][j] * v[i][j];
     }
-    kin += m * v2 / 2.;
   }
 
   // printf("  Total Kinetic Energy is %f\n",N*mvs*m/2.);
-  return kin;
+  return 0.5 * m * sum;
 }
 
-// Function to calculate the potential energy of the system
-double Potential()
-{
-  double quot, r2, rnorm, term1, term2, Pot;
-  int i, j, k;
-
-  // auxiliary variables for pow computation
-  double quot2, quot4;
-
-  Pot = 0.;
-
-  // TODO: distribute the work of computing the potential energy among the threads and reduce the results to a single value for Pot
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < N; j++) {
-
-      if (j != i) {
-        r2 = 0.;
-        for (k = 0; k < 3; k++) {
-          r2 += (r[i][k] - r[j][k]) * (r[i][k] - r[j][k]);
-        }
-        // first, optimize the pow calculation below
-        rnorm = sqrt(r2);
-        quot = sigma / rnorm;   // 1. / rnorm;
-
-        // term2 computation with multiplication instead of pow() for better performance
-        quot2 = quot * quot;       // (σ/r)^2
-        quot4 = quot2 * quot2;     // (σ/r)^4
-
-        term2 = quot2 *quot4;  // pow(1./rnorm,6.);
-        term1 = term2 * term2; // pow(1./rnorm,12.);
-
-        // Lennard-Jones 12-6 potential: V(r) = 4ε[(σ/r)¹² − (σ/r)⁶]
-        // pot = 4 * 1 * (1/r^12 - 1/r^6)
-        Pot += 4 * epsilon * (term1 - term2);
-      }
-    }
-  }
-
-  return Pot;
+/**
+ * Function to calculate the potential energy of the system
+ * 
+ * Warning:
+ * 
+ * The Lennard-Jones term is symmetric: V(r_ij) = V(r_ji), 
+ * because the distance does not depend on the order. 
+ * the Potential() function below visits every (i, j) with j ≠ i, 
+ * so each pair is counted twice and the total came out 2× larger.
+ * 
+ **/ 
+double Potential() {
+  return Epot;
 }
 
-//   Uses the derivative of the Lennard-Jones potential to calculate
-//   the forces on each atom.  Then uses a = F/m to calculate the
-//   accelleration of each atom.
+/**
+ * Computes the acceleration of every particle from Lennard-Jones forces
+ * and stores it in the global matrix `a`.
+ *
+ * Natural units (sigma = epsilon = m = 1), so a = F.
+ * Each pair (i < j) is visited once. With R = |r_i - r_j|^2,
+ * f = 24 * (2*R^-7 - R^-4) is the LJ force divided by r, so rij * f is the
+ * force vector on i. By Newton's third law the same value
+ * is added to a[i] and subtracted from a[j].
+ *
+ * pow() is replaced by one division and a few multiplications.
+ * Cost: O(N^2). Reads r and N; overwrites a.
+ *
+ */
 void computeAccelerations()
 {
-  int i, j, k;
-  double f, rSqd;
-  double rSqdInv, rSqd2; // auxiliary variable for pow computation
-  double rij[3]; // position of i relative to j
+  double Pot = 0.0;
 
-  // inicializa a 0 a matriz de aceleracoes
-  for (i = 0; i < N; i++) { // set all accelerations to zero
-    for (k = 0; k < 3; k++) {
-      a[i][k] = 0; // `a` - accelerations matrix
-    }
-  }
-  for (i = 0; i < N - 1; i++) { // loop over all distinct pairs i,j
-    for (j = i + 1; j < N; j++) {
-      // initialize r^2 to zero
-      rSqd = 0;
+  const double sigma2 = sigma * sigma;
 
-      for (k = 0; k < 3; k++) {
-        //  component-by-componenent position of i relative to j
-        rij[k] = r[i][k] - r[j][k]; // 'r' position matrix
-        //  sum of squares of the components
-        rSqd += rij[k] * rij[k];
+  // Reset accelerations
+  for (int i = 0; i < N; i++)
+    for (int k = 0; k < 3; k++)
+      a[i][k] = 0.0;
+
+#pragma omp parallel reduction(+ : Pot)
+  {
+    // Thread-local acceleration array
+    double (*aloc)[3] = (double (*)[3])calloc(N, sizeof *aloc);
+
+#pragma omp for schedule(dynamic) nowait
+    for (int i = 0; i < N - 1; i++)
+    {
+      for (int j = i + 1; j < N; j++)
+      {
+        double rij[3];
+        double rSqd = 0.0;
+
+        // Calculate squared distance
+        for (int k = 0; k < 3; k++)
+        {
+          rij[k] = r[i][k] - r[j][k];
+          rSqd += rij[k] * rij[k];
+        }
+
+        double invR2 = 1.0 / rSqd;
+
+        // Lennard-Jones potential terms
+        double sr2 = sigma2 * invR2;
+        double sr6 = sr2 * sr2 * sr2;
+        double sr12 = sr6 * sr6;
+
+        Pot += sr6 * (sr6 - 1.0);
+
+        // Compute force between particles i and j
+        double f = 24.0 * (2.0 * sr12 - sr6) * invR2;
+
+        // Update thread-local accelerations
+        for (int k = 0; k < 3; k++)
+        {
+          aloc[i][k] += rij[k] * f;
+          aloc[j][k] -= rij[k] * f;
+        }
       }
-
-      //  From derivative of Lennard-Jones with sigma and epsilon set equal to 1
-      //  in natural units!
-      rSqdInv = (1. / rSqd);
-      rSqd2 = rSqdInv * rSqdInv;
-      f = 24 * (2 * (rSqd2 * rSqd2 * rSqd2 * rSqdInv) - (rSqd2 * rSqd2)); // f = 24 * (2 * pow(rSqd, -7) - pow(rSqd, -4));
-      for (k = 0; k < 3; k++) {
-        //  from F = ma, where m = 1 in natural units!
-        a[i][k] += rij[k] * f; // `a` - accelerations matrix
-        a[j][k] -= rij[k] * f; // `a` - accelerations matrix
-      }
     }
+
+    // Merge thread-local accelerations
+#pragma omp critical
+    {
+      for (int i = 0; i < N; i++)
+        for (int k = 0; k < 3; k++)
+          a[i][k] += aloc[i][k];
+    }
+
+    free(aloc);
   }
+
+  // Preserve original potential energy convention
+  Epot = 2 * 4 * epsilon * Pot;
 }
 
 /**
@@ -650,14 +663,14 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
    * Warning:
    *  The code below does not update the position of the particle after it collides with the wall,
    *  which means that the particle will be outside the box after the collision. 
-   *  This can interfere with the interactions with other particles, because the distance will be larger than it should be. A possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the collision.
+   *  This can interfere with the interactions with other particles, because the distance will be
+   *  larger than it should be. A possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the collision.
    */
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
       // Second half-kick: v += ½a·dt
       v[i][j] += 0.5 * a[i][j] * dt;
       
-      // TODO: shouldnt we set r[i][j] = 0. here? or r[i][j] = -r[i][j]?
       if (r[i][j] < 0.) {
         v[i][j] *= -1.; //- elastic walls
         psum += 2 * m * fabs(v[i][j]) /
