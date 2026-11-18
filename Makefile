@@ -1,6 +1,6 @@
 CC = gcc
 SRC = src/
-CFLAGS = -O3 -ffast-math
+CFLAGS = -O3 -ffast-math -fopenmp -march=native
 
 .DEFAULT_GOAL = md
 
