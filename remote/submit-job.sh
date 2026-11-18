@@ -37,5 +37,8 @@ echo "Step 2: perf stat"
 perf stat -d -o "$RESULTS/perf.stat" -- \
     make run VERSION="$VERSION" RESULTS="$RESULTS"
 
+echo "Step 3: export perf record to text file"
+perf report -n -i "$RESULTS/perf.data" --stdio > "$RESULTS/perf.data.txt"
+
 echo
 echo "Finished"
