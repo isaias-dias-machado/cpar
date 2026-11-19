@@ -40,5 +40,8 @@ perf stat -d -o "$RESULTS/perf.stat" -- \
 echo "Step 3: export perf record to text file"
 perf report -n -i "$RESULTS/perf.data" --stdio > "$RESULTS/perf.data.txt"
 
+echo "Results compared to the baseline result"
+./scripts/check
+
 echo
 echo "Finished"
