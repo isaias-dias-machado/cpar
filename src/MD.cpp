@@ -40,6 +40,7 @@
  * the simulation space) are managed by elastic walls (see supporting slides on
  * the e-Learning page)*
  */
+#include <cstdlib>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,6 +79,10 @@ double v[MAXPART][3];
 double a[MAXPART][3];
 //  Force
 double F[MAXPART][3];
+
+double rx[MAXPART];
+double ry[MAXPART];
+double rz[MAXPART];
 
 // atom type
 char atype[10];
@@ -559,55 +564,56 @@ void computeAccelerations()
     for (int k = 0; k < 3; k++)
       a[i][k] = 0.0;
 
-#pragma omp parallel reduction(+ : Pot)
-  {
-    // Thread-local acceleration array
-    double (*aloc)[3] = (double (*)[3])calloc(N, sizeof *aloc);
+#pragma omp parallel for schedule(static) reduction(+ : Pot)
+  for (int i = 0; i < N - 1; i++) {
+    const double rxi = rx[i], ryi = ry[i], rzi = rz[i];
+    double fx = 0.0, fy = 0.0, fz = 0.0;
 
-#pragma omp for schedule(dynamic) nowait
-    for (int i = 0; i < N - 1; i++) {
-      for (int j = i + 1; j < N; j++) {
-        double rij[3];
-        double rSqd = 0.0;
+    /* j < i half */
+    for (int j = i + 1; j < N; j++) {
+      const double dx = rxi - rx[j];
+      const double dy = ryi - ry[j];
+      const double dz = rzi - rz[j];
+      const double rSqd = dx * dx + dy * dy + dz * dz;
+      const double invR2 = 1.0 / rSqd; // N * (N-1)/2
 
-        // Calculate squared distance
-        for (int k = 0; k < 3; k++) {
-          rij[k] = r[i][k] - r[j][k];
-          rSqd += rij[k] * rij[k]; // 9 * N * (N-1)/2
-        }
+      // Lennard-Jones potential terms
+      const double sr2 = sigma2 * invR2;
+      const double sr6 = sr2 * sr2 * sr2;
+      const double sr12 = sr6 * sr6; // 4 * N * (N-1)/2
 
-        double invR2 = 1.0 / rSqd; // N * (N-1)/2
+      Pot += sr6 * (sr6 - 1.0); // 3 * N * (N-1)/2
 
-        // Lennard-Jones potential terms
-        double sr2 = sigma2 * invR2;
-        double sr6 = sr2 * sr2 * sr2;
-        double sr12 = sr6 * sr6; // 4 * N * (N-1)/2
+      // Compute force between particles i and j
+      const double f = 24.0 * (2.0 * sr12 - sr6) * invR2; // 4 * N * (N-1)/2
 
-        Pot += sr6 * (sr6 - 1.0); // 3 * N * (N-1)/2
-
-        // Compute force between particles i and j
-        double f = 24.0 * (2.0 * sr12 - sr6) * invR2; // 4 * N * (N-1)/2
-
-        // Update thread-local accelerations
-        for (int k = 0; k < 3; k++) {
-          aloc[i][k] += rij[k] * f;
-          aloc[j][k] -= rij[k] * f; // 12 * N * (N-1)/2
-        }
-      }
+      fx += dx * f;
+      fy += dy * f;
+      fz += dz * f;
     }
 
-    // Merge thread-local accelerations
-#pragma omp critical
-    {
-      for (int i = 0; i < N; i++)
-        for (int k = 0; k < 3; k++)
-          a[i][k] += aloc[i][k]; // 3 * N
+    /* j > i half: identical body, different bound */
+    for (int j = i + 1; j < N; j++) {
+      const double dx = rxi - rx[j];
+      const double dy = ryi - ry[j];
+      const double dz = rzi - rz[j];
+      const double rSqd = dx * dx + dy * dy + dz * dz;
+      const double invR2 = 1.0 / rSqd;
+      const double sr2 = sigma2 * invR2;
+      const double sr6 = sr2 * sr2 * sr2;
+      const double sr12 = sr6 * sr6;
+      Pot += sr6 * (sr6 - 1.0);
+      const double f = 24.0 * (2.0 * sr12 - sr6) * invR2;
+      fx += dx * f;
+      fy += dy * f;
+      fz += dz * f;
     }
 
-    free(aloc);
+    a[i][0] = fx;
+    a[i][1] = fy;
+    a[i][2] = fz;
   }
 
-  // Preserve original potential energy convention
   Epot = 2 * 4 * epsilon * Pot; // 3
 } // total flops: 33 * N*(N-1)/2 + 3N + 4
 
