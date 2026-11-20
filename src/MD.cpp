@@ -506,7 +506,8 @@ double MeanSquaredVelocity()
 
 //  Function to calculate the kinetic energy of the system
 //  Since it's a small loop, so it's not worth parallelizing it with OpenMP
-double Kinetic() {
+double Kinetic()
+{
 
   double sum = 0.;
 
@@ -522,18 +523,16 @@ double Kinetic() {
 
 /**
  * Function to calculate the potential energy of the system
- * 
+ *
  * Warning:
- * 
- * The Lennard-Jones term is symmetric: V(r_ij) = V(r_ji), 
- * because the distance does not depend on the order. 
- * the Potential() function below visits every (i, j) with j ≠ i, 
+ *
+ * The Lennard-Jones term is symmetric: V(r_ij) = V(r_ji),
+ * because the distance does not depend on the order.
+ * the Potential() function below visits every (i, j) with j ≠ i,
  * so each pair is counted twice and the total came out 2× larger.
- * 
- **/ 
-double Potential() {
-  return Epot;
-}
+ *
+ **/
+double Potential() { return Epot; }
 
 /**
  * Computes the acceleration of every particle from Lennard-Jones forces
@@ -553,7 +552,7 @@ void computeAccelerations()
 {
   double Pot = 0.0;
 
-  const double sigma2 = sigma * sigma;
+  const double sigma2 = sigma * sigma; // 1 op
 
   // Reset accelerations
   for (int i = 0; i < N; i++)
@@ -566,37 +565,33 @@ void computeAccelerations()
     double (*aloc)[3] = (double (*)[3])calloc(N, sizeof *aloc);
 
 #pragma omp for schedule(dynamic) nowait
-    for (int i = 0; i < N - 1; i++)
-    {
-      for (int j = i + 1; j < N; j++)
-      {
+    for (int i = 0; i < N - 1; i++) {
+      for (int j = i + 1; j < N; j++) {
         double rij[3];
         double rSqd = 0.0;
 
         // Calculate squared distance
-        for (int k = 0; k < 3; k++)
-        {
+        for (int k = 0; k < 3; k++) {
           rij[k] = r[i][k] - r[j][k];
-          rSqd += rij[k] * rij[k];
+          rSqd += rij[k] * rij[k]; // 9 * N * (N-1)/2
         }
 
-        double invR2 = 1.0 / rSqd;
+        double invR2 = 1.0 / rSqd; // N * (N-1)/2
 
         // Lennard-Jones potential terms
         double sr2 = sigma2 * invR2;
         double sr6 = sr2 * sr2 * sr2;
-        double sr12 = sr6 * sr6;
+        double sr12 = sr6 * sr6; // 4 * N * (N-1)/2
 
-        Pot += sr6 * (sr6 - 1.0);
+        Pot += sr6 * (sr6 - 1.0); // 3 * N * (N-1)/2
 
         // Compute force between particles i and j
-        double f = 24.0 * (2.0 * sr12 - sr6) * invR2;
+        double f = 24.0 * (2.0 * sr12 - sr6) * invR2; // 4 * N * (N-1)/2
 
         // Update thread-local accelerations
-        for (int k = 0; k < 3; k++)
-        {
+        for (int k = 0; k < 3; k++) {
           aloc[i][k] += rij[k] * f;
-          aloc[j][k] -= rij[k] * f;
+          aloc[j][k] -= rij[k] * f; // 12 * N * (N-1)/2
         }
       }
     }
@@ -606,15 +601,15 @@ void computeAccelerations()
     {
       for (int i = 0; i < N; i++)
         for (int k = 0; k < 3; k++)
-          a[i][k] += aloc[i][k];
+          a[i][k] += aloc[i][k]; // 3 * N
     }
 
     free(aloc);
   }
 
   // Preserve original potential energy convention
-  Epot = 2 * 4 * epsilon * Pot;
-}
+  Epot = 2 * 4 * epsilon * Pot; // 3
+} // total flops: 33 * N*(N-1)/2 + 3N + 4
 
 /**
  *
@@ -659,18 +654,20 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
    *  1. Updates velocity with updated acceleration
    *  2. Flips velocity if particle is outside the box
    *  3. Computes pressure from wall collisions
-   * 
+   *
    * Warning:
-   *  The code below does not update the position of the particle after it collides with the wall,
-   *  which means that the particle will be outside the box after the collision. 
-   *  This can interfere with the interactions with other particles, because the distance will be
-   *  larger than it should be. A possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the collision.
+   *  The code below does not update the position of the particle after it
+   * collides with the wall, which means that the particle will be outside the
+   * box after the collision. This can interfere with the interactions with
+   * other particles, because the distance will be larger than it should be. A
+   * possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the
+   * collision.
    */
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
       // Second half-kick: v += ½a·dt
       v[i][j] += 0.5 * a[i][j] * dt;
-      
+
       if (r[i][j] < 0.) {
         v[i][j] *= -1.; //- elastic walls
         psum += 2 * m * fabs(v[i][j]) /
@@ -694,7 +691,8 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
   }*/
   // fprintf(fp,"\n \n");
 
-  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 = area of a wall) * 6 walls
+  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 =
+                             // area of a wall) * 6 walls
 }
 
 void initializeVelocities()
@@ -709,9 +707,9 @@ void initializeVelocities()
   // sum(m*v[i]) ; N*m = massa total do sistema, porque cada partícula tem massa
   // m
   double vCM[3] = {0, 0, 0};
-  
-  // sum(m*v[i]) / m * N = (1/N) * sum(x) 
-  // -> m * sum(v[i]) / m * N 
+
+  // sum(m*v[i]) / m * N = (1/N) * sum(x)
+  // -> m * sum(v[i]) / m * N
   // -> sum(v[i]) / N
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
@@ -721,7 +719,7 @@ void initializeVelocities()
     }
   }
 
-  for (i = 0; i < 3; i++){
+  for (i = 0; i < 3; i++) {
     vCM[i] /= N;
   }
 
@@ -729,7 +727,8 @@ void initializeVelocities()
   //  velocity of each particle... effectively set the
   //  center of mass velocity to zero so that the system does
   //  not drift in space!
-  //  And compute the average velocity squared for the system, which is related to the temperature of the system
+  //  And compute the average velocity squared for the system, which is related
+  //  to the temperature of the system
   double vSqdSum = 0.;
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
@@ -738,10 +737,10 @@ void initializeVelocities()
       vSqdSum += v[i][j] * v[i][j];
     }
   }
-  
-  //  Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity -> N-1)
-  //  Now we want to scale the average velocity of the system
-  //  by a factor which is consistent with our initial temperature, Tinit
+
+  //  Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity ->
+  //  N-1) Now we want to scale the average velocity of the system by a factor
+  //  which is consistent with our initial temperature, Tinit
   double lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
 
   for (i = 0; i < N; i++) {
