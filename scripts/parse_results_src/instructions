@@ -1,0 +1,3 @@
+#!/bin/bash
+
+grep 'insn per cycle' $1 | awk '{print $1}'
