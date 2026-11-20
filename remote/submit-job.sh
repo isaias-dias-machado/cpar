@@ -9,6 +9,7 @@
 # Configuration
 VERSION="${VERSION:-}"
 RESULTS="${RESULTS:-results${VERSION}}"
+THREADS=${THREADS:-1 2 4 8 12 16 24 32 48}
 
 echo "Code version: ${VERSION}"
 echo "Results directory: ${RESULTS}"
@@ -19,29 +20,32 @@ echo "Loading GCC/15.2.0"
 module purge
 module load GCC/15.2.0
 
-echo
-echo "Compiling the code"
+for thread in $THREADS; do 
+  echo "======== Profiling for $thread threads ========"
+  echo
+  echo "Compiling the code"
 
-make clean VERSION="$VERSION" RESULTS="$RESULTS"
-make VERSION="$VERSION" RESULTS="$RESULTS"
-make results-dir VERSION="$VERSION" RESULTS="$RESULTS"
+  make clean VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
+  make VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
+  # make results-dir VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
 
-echo
-echo "Profiling the code"
+  echo
+  echo "Profiling the code"
 
-echo "Step 1: perf record"
-perf record -e cycles:u -o "$RESULTS/perf.data" -- \
-    make run VERSION="$VERSION" RESULTS="$RESULTS"
+  echo "Step 1: perf record"
+  perf record -e cycles:u -o "$RESULTS/perf.data" -- \
+      make run VERSION="$VERSION" RESULTS="$RESULTS"
 
-echo "Step 2: perf stat"
-perf stat -d -o "$RESULTS/perf.stat" -- \
-    make run VERSION="$VERSION" RESULTS="$RESULTS"
+  echo "Step 2: perf stat"
+  perf stat -d -o -r 10 "$RESULTS/perf.stat" -- \
+      make run VERSION="$VERSION" RESULTS="$RESULTS"
 
-echo "Step 3: export perf record to text file"
-perf report -n -i "$RESULTS/perf.data" --stdio > "$RESULTS/perf.data.txt"
+  echo "Step 3: export perf record to text file"
+  perf report -n -i "$RESULTS/perf.data" --stdio
 
-echo "Results compared to the baseline result"
-./scripts/check
+  echo "Results compared to the baseline result"
+  ./scripts/check
 
-echo
-echo "Finished"
+  echo
+  echo "Finished"
+done
