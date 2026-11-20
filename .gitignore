@@ -13,3 +13,5 @@ results/
 logs/
 perf.data*
 scorep-*/
+
+*slurm*
