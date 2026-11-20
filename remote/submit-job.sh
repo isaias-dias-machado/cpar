@@ -37,7 +37,7 @@ for thread in $THREADS; do
       make run VERSION="$VERSION" RESULTS="$RESULTS"
 
   echo "Step 2: perf stat"
-  perf stat -d -o -r 10 "$RESULTS/perf.stat" -- \
+  perf stat -d -r 10 -- \
       make run VERSION="$VERSION" RESULTS="$RESULTS"
 
   echo "Step 3: export perf record to text file"

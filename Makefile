@@ -8,8 +8,8 @@ md:     $(SRC)/MD.cpp
 	$(CC) $(CFLAGS) $(SRC)MD.cpp -lm -o md    
 
 clean:
-	rm ./md    
+	rm -f ./md    
 
 export OMP_NUM_THREADS ?= 48
 run:
-	./md     < inputdata.txt
+	./md     < inputdata.txt >/dev/null
