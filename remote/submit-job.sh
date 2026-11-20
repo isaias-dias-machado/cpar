@@ -25,8 +25,8 @@ for thread in $THREADS; do
   echo
   echo "Compiling the code"
 
-  make clean VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
-  make VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
+  make clean VERSION="$VERSION" RESULTS="$RESULTS"
+  make VERSION="$VERSION" RESULTS="$RESULTS"
   # make results-dir VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
 
   echo
@@ -34,11 +34,11 @@ for thread in $THREADS; do
 
   echo "Step 1: perf record"
   perf record -e cycles:u -o "$RESULTS/perf.data" -- \
-      make run VERSION="$VERSION" RESULTS="$RESULTS"
+      make run VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
 
   echo "Step 2: perf stat"
   perf stat -d -r 10 -- \
-      make run VERSION="$VERSION" RESULTS="$RESULTS"
+      make run VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
 
   echo "Step 3: export perf record to text file"
   perf report -n -i "$RESULTS/perf.data" --stdio
