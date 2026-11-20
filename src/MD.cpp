@@ -559,11 +559,6 @@ void computeAccelerations()
 
   const double sigma2 = sigma * sigma; // 1 op
 
-  // Reset accelerations
-  for (int i = 0; i < N; i++)
-    for (int k = 0; k < 3; k++)
-      a[i][k] = 0.0;
-
 #pragma omp parallel for schedule(static) reduction(+ : Pot)
   for (int i = 0; i < N - 1; i++) {
     const double rxi = rx[i], ryi = ry[i], rzi = rz[i];
