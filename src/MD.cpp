@@ -559,13 +559,20 @@ void computeAccelerations()
 
   const double sigma2 = sigma * sigma; // 1 op
 
+#pragma omp parallel for schedule(static)
+  for (int i = 0; i < N; i++) {
+    rx[i] = r[i][0];
+    ry[i] = r[i][1];
+    rz[i] = r[i][2];
+  }
+
 #pragma omp parallel for schedule(static) reduction(+ : Pot)
-  for (int i = 0; i < N - 1; i++) {
+  for (int i = 0; i < N; i++) {
     const double rxi = rx[i], ryi = ry[i], rzi = rz[i];
     double fx = 0.0, fy = 0.0, fz = 0.0;
 
     /* j < i half */
-    for (int j = i + 1; j < N; j++) {
+    for (int j = 0; j < i; j++) {
       const double dx = rxi - rx[j];
       const double dy = ryi - ry[j];
       const double dz = rzi - rz[j];
@@ -609,7 +616,7 @@ void computeAccelerations()
     a[i][2] = fz;
   }
 
-  Epot = 2 * 4 * epsilon * Pot; // 3
+  Epot = 4 * epsilon * Pot; // 3
 } // total flops: 33 * N*(N-1)/2 + 3N + 4
 
 /**
