@@ -1,0 +1,2 @@
+#!/bin/bash
+grep 'seconds time elapsed' $1 | awk '{print $1}'

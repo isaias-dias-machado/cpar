@@ -9,6 +9,7 @@
 # Configuration
 VERSION="${VERSION:-}"
 RESULTS="${RESULTS:-results${VERSION}}"
+THREADS=${THREADS:-1 2 4 8 12 16 24 32 48 54 60 72}
 
 echo "Code version: ${VERSION}"
 echo "Results directory: ${RESULTS}"
