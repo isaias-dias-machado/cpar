@@ -7,7 +7,7 @@ set xtics 0,4
 set grid
 
 # baseline time from the 1-thread row of results.csv
-t1 = 89.1998
+t1 = 49.19710
 
 set terminal pngcairo size 900,600
 set output 'speedup.png'
