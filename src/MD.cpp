@@ -41,6 +41,7 @@
  * the e-Learning page)*
  */
 #include <cstdlib>
+#include <cstdint>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -540,6 +541,71 @@ double Kinetic()
 double Potential() { return Epot; }
 
 /**
+ * fastReciprocal — approximates 1/x for a positive normal double without
+ * using the hardware divide instruction.
+ *
+ * Why: an fp divide costs far more latency (~19-40 cycles depending on ISA)
+ * than a multiply, and multiple divides cannot overlap in the pipeline,
+ * while multiplies/FMAs pipeline freely. In the O(N^2) pair loop the
+ * division sits on the critical path of every pair interaction, so
+ * replacing it with ~13 multiply-type flops shortens the dependency chain
+ * the out-of-order engine has to hide.
+ *
+ * How:
+ *  1. Bit-split x into mantissa m in [0.5, 1) and a power-of-two scale
+ *     (hand-rolled frexp via bit manipulation; multiplying by a power of
+ *     two is exact). Only the mantissa needs the reciprocal.
+ *  2. Minimax straight line y0 = (48 - 32m)/17 estimates 1/m with
+ *     relative error <= 5.88e-2 on [0.5, 1) (textbook coefficient pair).
+ *  3. Four Newton-Raphson refinements y <- y * (2 - m*y); the error squares
+ *     each step: 5.9e-2 -> 3.5e-3 -> 1.2e-5 -> 1.4e-10 -> <= 1 ulp.
+ *  4. One Markstein FMA correction against the original x snaps the
+ *     result onto the correctly-rounded quotient, i.e. the same bits a
+ *     real division produces, for virtually every input.
+ *
+ * Invariants: x must be a positive, normal double (x >= 2^-1022). In this
+ * code the input is rSqd = dx^2+dy^2+dz^2 of magnitude O(1..L^2), so the
+ * assumption holds. Thread-safe: pure function, no static state.
+ *
+ * Failure mode: x == 0 (coincident particles) returns a finite garbage
+ * value instead of the +inf a true division yields; a run that reaches
+ * that state is already divergent. Subnormal x is likewise out of domain.
+ */
+static double fastReciprocal(double x)
+{
+  // re-interpret the bits of x as an unsigned integer (well-defined via memcpy)
+  uint64_t bits;
+  memcpy(&bits, &x, sizeof bits);
+
+  // mantissa: force the exponent field to 1022 -> m in [0.5, 1)
+  const uint64_t mBits = (bits & 0x000FFFFFFFFFFFFFULL) | (1022ULL << 52);
+  double m;
+  memcpy(&m, &mBits, sizeof m);
+
+  // initial guess for 1/m: minimax line on [0.5, 1)
+  double y = 48.0 / 17.0 - 32.0 / 17.0 * m;
+
+  // Newton-Raphson on the mantissa: y -> 1/m (error <= 1 ulp after 4 steps)
+  y = y * (2.0 - m * y);
+  y = y * (2.0 - m * y);
+  y = y * (2.0 - m * y);
+  y = y * (2.0 - m * y);
+
+  // 1/x = (1/m) * 2^{-(b-1022)}, where b is the biased exponent of x;
+  // build the power-of-two scale from exponent bits (exact multiplication)
+  const uint64_t scaleBits = (2045ULL - ((bits >> 52) & 0x7FF)) << 52;
+  double scale;
+  memcpy(&scale, &scaleBits, sizeof scale);
+  y *= scale;
+
+  // Markstein correction: residuals computed with FMA put the result
+  // within one rounding step of the exact quotient — bit-identical to
+  // hardware division in all but measure-zero pathological cases
+  const double resid = fma(-x, y, 1.0);
+  return fma(y, resid, y);
+}
+
+/**
  * Computes the acceleration of every particle from Lennard-Jones forces
  * and stores it in the global matrix `a`.
  *
@@ -549,7 +615,8 @@ double Potential() { return Epot; }
  * force vector on i. By Newton's third law the same value
  * is added to a[i] and subtracted from a[j].
  *
- * pow() is replaced by one division and a few multiplications.
+ * pow() is replaced by a Newton-Raphson reciprocal (fastReciprocal):
+ * not a single fp division remains in the pair loop.
  * Cost: O(N^2). Reads r and N; overwrites a.
  *
  */
@@ -577,7 +644,7 @@ void computeAccelerations()
       const double dy = ryi - ry[j];
       const double dz = rzi - rz[j];
       const double rSqd = dx * dx + dy * dy + dz * dz;
-      const double invR2 = 1.0 / rSqd; // N * (N-1)/2
+      const double invR2 = fastReciprocal(rSqd); // ~13 * N*(N-1)/2 flops, 0 fp divides
 
       // Lennard-Jones potential terms
       const double sr2 = sigma2 * invR2;
@@ -600,7 +667,7 @@ void computeAccelerations()
       const double dy = ryi - ry[j];
       const double dz = rzi - rz[j];
       const double rSqd = dx * dx + dy * dy + dz * dz;
-      const double invR2 = 1.0 / rSqd;
+      const double invR2 = fastReciprocal(rSqd);
       const double sr2 = sigma2 * invR2;
       const double sr6 = sr2 * sr2 * sr2;
       const double sr12 = sr6 * sr6;
@@ -617,7 +684,9 @@ void computeAccelerations()
   }
 
   Epot = 4 * epsilon * Pot; // 3
-} // total flops: 33 * N*(N-1)/2 + 3N + 4
+} // total flops: 45 * N*(N-1)/2 + 3N + 4
+// (was 33 with a hardware divide: the division = 1 op is traded for the
+//  ~13-flop Newton-Raphson reciprocal, which has a much shorter pipeline cost)
 
 /**
  *
