@@ -499,7 +499,6 @@ double MeanSquaredVelocity()
   double v2;
 
   for (int i = 0; i < N; i++) {
-
     vx2 = vx2 + v[i][0] * v[i][0];
     vy2 = vy2 + v[i][1] * v[i][1];
     vz2 = vz2 + v[i][2] * v[i][2];
@@ -518,9 +517,7 @@ double Kinetic()
   double sum = 0.;
 
   for (int i = 0; i < N; i++) {
-    for (int j = 0; j < 3; j++) {
-      sum += v[i][j] * v[i][j];
-    }
+      sum += (v[i][0] * v[i][0]) + (v[i][1] * v[i][1]) + (v[i][2] * v[i][2]);
   }
 
   // printf("  Total Kinetic Energy is %f\n",N*mvs*m/2.);
@@ -528,7 +525,7 @@ double Kinetic()
 }
 
 /**
- * Function to calculate the potential energy of the system
+ * Function to return the potential energy of the system
  *
  * Warning:
  *
@@ -638,6 +635,7 @@ void computeAccelerations()
       fz += dz * f;
     }
 
+    // resulting acceleration for particle i from all other particles
     a[i][0] = fx;
     a[i][1] = fy;
     a[i][2] = fz;
