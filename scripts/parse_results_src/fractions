@@ -1,3 +1,0 @@
-#!/bin/bash
-
-grep 'computeAccelerations' $1 | awk '{print $1}'

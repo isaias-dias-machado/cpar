@@ -11,9 +11,6 @@ VERSION="${VERSION:-}"
 RESULTS="${RESULTS:-results${VERSION}}"
 THREADS=${THREADS:-1 2 4 8 12 16 24 32 48 54 60 72}
 
-echo "Code version: ${VERSION}"
-echo "Results directory: ${RESULTS}"
-
 echo
 echo "Loading GCC/15.2.0"
 
@@ -23,25 +20,19 @@ module load GCC/15.2.0
 for thread in $THREADS; do 
   echo "======== Profiling for $thread threads ========"
   echo
-  echo "Compiling the code"
 
-  make clean VERSION="$VERSION" RESULTS="$RESULTS"
-  make VERSION="$VERSION" RESULTS="$RESULTS"
-  # make results-dir VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
-
-  echo
-  echo "Profiling the code"
+  make clean
 
   echo "Step 1: perf record"
-  perf record -e cycles:u -o "$RESULTS/perf.data" -- \
-      make run VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
+  perf record -e cycles:u -o "perf.data" -- \
+      make run OMP_NUM_THREADS="$thread"
 
   echo "Step 2: perf stat"
   perf stat -d -r 3 -- \
-      make run VERSION="$VERSION" RESULTS="$RESULTS" OMP_NUM_THREADS="$thread"
+      make run OMP_NUM_THREADS="$thread"
 
   echo "Step 3: export perf record to text file"
-  perf report -n -i "$RESULTS/perf.data" --stdio
+  perf report -n -i "perf.data" --stdio
 
   echo "Results compared to the baseline result"
   ./scripts/check
