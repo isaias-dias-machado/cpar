@@ -551,18 +551,6 @@ double Potential() { return Epot; }
  * replacing it with ~13 multiply-type flops shortens the dependency chain
  * the out-of-order engine has to hide.
  *
- * How:
- *  1. Bit-split x into mantissa m in [0.5, 1) and a power-of-two scale
- *     (hand-rolled frexp via bit manipulation; multiplying by a power of
- *     two is exact). Only the mantissa needs the reciprocal.
- *  2. Minimax straight line y0 = (48 - 32m)/17 estimates 1/m with
- *     relative error <= 5.88e-2 on [0.5, 1) (textbook coefficient pair).
- *  3. Four Newton-Raphson refinements y <- y * (2 - m*y); the error squares
- *     each step: 5.9e-2 -> 3.5e-3 -> 1.2e-5 -> 1.4e-10 -> <= 1 ulp.
- *  4. One Markstein FMA correction against the original x snaps the
- *     result onto the correctly-rounded quotient, i.e. the same bits a
- *     real division produces, for virtually every input.
- *
  * Invariants: x must be a positive, normal double (x >= 2^-1022). In this
  * code the input is rSqd = dx^2+dy^2+dz^2 of magnitude O(1..L^2), so the
  * assumption holds. Thread-safe: pure function, no static state.
@@ -618,15 +606,17 @@ void computeAccelerations()
 
 #pragma omp parallel for schedule(static) reduction(+ : Pot)
   for (int i = 0; i < N; i++) {
-    const double rxi = rx[i], ryi = ry[i], rzi = rz[i];
+    const double rxi = rx[i];
+    const double ryi = ry[i];
+    const double rzi = rz[i];
+
     double fx = 0.0, fy = 0.0, fz = 0.0;
 
-    /* j < i half */
     for (int j = 0; j < N; j++) {
 
       if (j == i)
         continue;
-        
+
       const double dx = rxi - rx[j];
       const double dy = ryi - ry[j];
       const double dz = rzi - rz[j];
