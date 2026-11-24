@@ -501,7 +501,6 @@ double MeanSquaredVelocity()
   double v2;
 
   for (int i = 0; i < N; i++) {
-
     vx2 = vx2 + v[i][0] * v[i][0];
     vy2 = vy2 + v[i][1] * v[i][1];
     vz2 = vz2 + v[i][2] * v[i][2];
@@ -519,9 +518,7 @@ double Kinetic() {
   double sum = 0.;
 
   for (int i = 0; i < N; i++) {
-    for (int j = 0; j < 3; j++) {
-      sum += v[i][j] * v[i][j];
-    }
+    sum += (v[i][0] * v[i][0]) + (v[i][1] * v[i][1]) + (v[i][2] * v[i][2]);
   }
 
   // printf("  Total Kinetic Energy is %f\n",N*mvs*m/2.);
@@ -529,13 +526,13 @@ double Kinetic() {
 }
 
 /**
- * Function to calculate the potential energy of the system
+ * Function to return the calculated potential energy of the system
  * 
  * Warning:
  * 
  * The Lennard-Jones term is symmetric: V(r_ij) = V(r_ji), 
  * because the distance does not depend on the order. 
- * the Potential() function below visits every (i, j) with j ≠ i, 
+ * the original MD's Potential() function visits every (i, j) with j ≠ i, 
  * so each pair is counted twice and the total came out 2× larger.
  * 
  **/ 
@@ -543,41 +540,49 @@ double Potential() {
   return Epot;
 }
 
+static inline svfloat64_t recip(svbool_t pg, svfloat64_t d)
+{
+  // svrecpe_f64 = computes the reciprocal estimate of each lane of d (1/d)
+  svfloat64_t x = svrecpe_f64(d);
+  // svmul_f64_x (mask, op1, op2) = multiplicação elemento a elemento de dois vetores de ponto flutuante de precisão dupla 
+  x = svmul_f64_x(pg, x, svrecps_f64(d, x)); // 8 -> 16
+  x = svmul_f64_x(pg, x, svrecps_f64(d, x)); // 16 -> 32
+  x = svmul_f64_x(pg, x, svrecps_f64(d, x)); // 32 -> 64 (full double precision)
+  return x;
+}
+
 /**
  * Computes the acceleration of every particle from Lennard-Jones forces
  * and stores it in the global matrix `a`.
  *
  * Natural units (sigma = epsilon = m = 1), so a = F.
- * Each pair (i < j) is visited once. With R = |r_i - r_j|^2,
- * f = 24 * (2*R^-7 - R^-4) is the LJ force divided by r, so rij * f is the
- * force vector on i. By Newton's third law the same value
+ * With R = |r_i - r_j|^2, f = 24 * (2*R^-7 - R^-4) is the LJ force divided by r, 
+ * so rij * f is the force vector on i. By Newton's third law the same value
  * is added to a[i] and subtracted from a[j].
  *
  * pow() is replaced by one division and a few multiplications.
  * Cost: O(N^2). Reads r and N; overwrites a.
  *
  */
-// 1/d per lane to full double precision, without fdiv.
-// frecpe gives ~8 bits; each frecps step doubles it: 8 -> 16 -> 32 -> 64.
-static inline svfloat64_t recip(svbool_t pg, svfloat64_t d)
-{
-  svfloat64_t x = svrecpe_f64(d);
-  x = svmul_f64_x(pg, x, svrecps_f64(d, x));
-  x = svmul_f64_x(pg, x, svrecps_f64(d, x));
-  x = svmul_f64_x(pg, x, svrecps_f64(d, x));
-  return x;
-}
 
 void computeAccelerations()
 {
-  const double s2 = sigma * sigma;
-  const double s6 = s2 * s2 * s2;
   double Pot = 0.0;
 
 #pragma omp parallel reduction(+ : Pot)
   {
+
+    /**
+     * Originally, particle positions were stored side-by-side in memory:
+     * x0, y0, z0, x1, y1, z1, ... (Array of Structures / AoS).
+     * So if you grab 8 consecutive doubles, you get mixed x, y, and z values.
+     * The code now copies them into three separate arrays: rx[], ry[], and rz[] 
+     * (Structure of Arrays / SoA), aligned to 256 bytes (alignas(256)). 
+     * Now rx[j], rx[j+1], ..., rx[j+7] sit right next to each other in memory
+     * so a vector load can grab 8 x coordinates cleanly in one shot.
+     */
 #pragma omp for schedule(static)
-    for (int i = 0; i < N; i++) {          // AoS -> SoA copy
+    for (int i = 0; i < N; i++) {
       rx[i] = r[i][0];
       ry[i] = r[i][1];
       rz[i] = r[i][2];
@@ -586,38 +591,52 @@ void computeAccelerations()
     // Each thread owns its particles: no shared writes, no buffers.
 #pragma omp for schedule(static)
     for (int i = 0; i < N; i++) {
+      // svdup_f64 = copies particle i's position into all lanes of a vector register
       const svfloat64_t xi = svdup_f64(rx[i]);
       const svfloat64_t yi = svdup_f64(ry[i]);
       const svfloat64_t zi = svdup_f64(rz[i]);
       svfloat64_t fx = svdup_f64(0.0), fy = svdup_f64(0.0);
       svfloat64_t fz = svdup_f64(0.0), pot = svdup_f64(0.0);
 
-      // 8 values of j per iteration (512-bit vectors)
+      // 8 values of j per iteration (64 bytes - 8 doubles vectors)
       for (int64_t j = 0; j < N; j += svcntd()) {
-        const svbool_t pg = svwhilelt_b64(j, (int64_t)N);   // handles the tail
-
+        // svbool_t = predicate mask for 64-bit lanes, svwhilelt_b64 = while less than
+        const svbool_t pg = svwhilelt_b64(j, (int64_t)N);
+        
+        /**
+         * svld1_f64 = loads up to 8 neighbor x coordinates starting at j
+         * 
+         * svsub_f64_x (mask, op1, op2) = subtrai os elementos do segundo vetor (op2) dos elementos
+         * correspondentes do primeiro vetor (op1) para cada faixa (lane) ativa definida pelo predicado pg
+         */
         const svfloat64_t dx = svsub_f64_x(pg, xi, svld1_f64(pg, &rx[j]));
         const svfloat64_t dy = svsub_f64_x(pg, yi, svld1_f64(pg, &ry[j]));
         const svfloat64_t dz = svsub_f64_x(pg, zi, svld1_f64(pg, &rz[j]));
-
+        
+        // svmul_f64_x (mask, op1, op2) = multiplicação elemento a elemento de dois vetores de ponto flutuante de precisão dupla 
+        // computes the squared distance for each lane: d = dx*dx + dy*dy + dz*dz , for 8 j-neighbors at a time
         svfloat64_t d = svmul_f64_x(pg, dx, dx);
+
+        // svmla_f64_x (mask, acc, op1, op2) [fused multiply-add] = acc + (op1 * op2) for each lane
         d = svmla_f64_x(pg, d, dy, dy);
         d = svmla_f64_x(pg, d, dz, dz);
 
-        // lanes to use: inside the array AND not the particle itself (d == 0)
+        // svcmpne_n_f64 = compares each lane of d with 0.0 and sets the corresponding bit in the predicate mask ok if they are not equal
         const svbool_t ok = svcmpne_n_f64(pg, d, 0.0);
 
         const svfloat64_t inv = recip(ok, d);
         const svfloat64_t i3  = svmul_f64_x(ok, svmul_f64_x(ok, inv, inv), inv);
-        const svfloat64_t sr6 = svmul_n_f64_x(ok, i3, s6);
+        const svfloat64_t sr6 = svmul_n_f64_x(ok, i3, sigma); // sigma = 1., so sigma^6 = 1.
 
         // potential term: sr6 * (sr6 - 1)
+        // svmla_f64_m (mask, acc, op1, op2) [fused multiply-add and merge] = acc + (op1 * op2) for each lane where mask is true
         pot = svmla_f64_m(ok, pot, sr6, svsub_n_f64_x(ok, sr6, 1.0));
 
         // force/r (the factor 24 is applied once after the loop):
         // sr6 * (2*sr6 - 1) * inv
         svfloat64_t f = svmul_f64_x(ok, sr6,
                           svsub_n_f64_x(ok, svmul_n_f64_x(ok, sr6, 2.0), 1.0));
+        
         f = svmul_f64_x(ok, f, inv);
 
         fx = svmla_f64_m(ok, fx, dx, f);
@@ -625,14 +644,17 @@ void computeAccelerations()
         fz = svmla_f64_m(ok, fz, dz, f);
       }
 
+      // svptrue_b64() = returns a predicate mask with all lanes set to true
       const svbool_t all = svptrue_b64();
+
+      // svaddv_f64(all, fx) = adds all 8 lanes together into a single scalar number
       a[i][0] = 24.0 * svaddv_f64(all, fx);
       a[i][1] = 24.0 * svaddv_f64(all, fy);
       a[i][2] = 24.0 * svaddv_f64(all, fz);
       Pot += svaddv_f64(all, pot);
     }
   }
-  Epot = 4 * epsilon * Pot;   // same value your original code produced
+  Epot = 4 * epsilon * Pot;
 }
 
 /**
