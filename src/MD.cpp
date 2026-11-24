@@ -571,38 +571,21 @@ double Potential() { return Epot; }
  * value instead of the +inf a true division yields; a run that reaches
  * that state is already divergent. Subnormal x is likewise out of domain.
  */
-static double fastReciprocal(double x)
+static inline double fastReciprocal(double x)
 {
-  // re-interpret the bits of x as an unsigned integer (well-defined via memcpy)
+  // Seed: flip the exponent bits so the magic constant gives ~4 bits of 1/x
   uint64_t bits;
   memcpy(&bits, &x, sizeof bits);
+  bits = 0x7FDE6238DA3C2118ULL - bits;   // classic magic-constant seed
+  double y;
+  memcpy(&y, &bits, sizeof y);
 
-  // mantissa: force the exponent field to 1022 -> m in [0.5, 1)
-  const uint64_t mBits = (bits & 0x000FFFFFFFFFFFFFULL) | (1022ULL << 52);
-  double m;
-  memcpy(&m, &mBits, sizeof m);
-
-  // initial guess for 1/m: minimax line on [0.5, 1)
-  double y = 48.0 / 17.0 - 32.0 / 17.0 * m;
-
-  // Newton-Raphson on the mantissa: y -> 1/m (error <= 1 ulp after 4 steps)
-  y = y * (2.0 - m * y);
-  y = y * (2.0 - m * y);
-  y = y * (2.0 - m * y);
-  y = y * (2.0 - m * y);
-
-  // 1/x = (1/m) * 2^{-(b-1022)}, where b is the biased exponent of x;
-  // build the power-of-two scale from exponent bits (exact multiplication)
-  const uint64_t scaleBits = (2045ULL - ((bits >> 52) & 0x7FF)) << 52;
-  double scale;
-  memcpy(&scale, &scaleBits, sizeof scale);
-  y *= scale;
-
-  // Markstein correction: residuals computed with FMA put the result
-  // within one rounding step of the exact quotient — bit-identical to
-  // hardware division in all but measure-zero pathological cases
-  const double resid = fma(-x, y, 1.0);
-  return fma(y, resid, y);
+  // Newton-Raphson: y -> y * (2 - x*y), error squares each step
+  y = y * (2.0 - x * y);   // ~8 bits
+  y = y * (2.0 - x * y);   // ~16 bits
+  y = y * (2.0 - x * y);   // ~32 bits
+  y = y * (2.0 - x * y);   // ~64 bits (full double)
+  return y;
 }
 
 /**
@@ -639,7 +622,11 @@ void computeAccelerations()
     double fx = 0.0, fy = 0.0, fz = 0.0;
 
     /* j < i half */
-    for (int j = 0; j < i; j++) {
+    for (int j = 0; j < N; j++) {
+
+      if (j == i)
+        continue;
+        
       const double dx = rxi - rx[j];
       const double dy = ryi - ry[j];
       const double dz = rzi - rz[j];
@@ -656,23 +643,6 @@ void computeAccelerations()
       // Compute force between particles i and j
       const double f = 24.0 * (2.0 * sr12 - sr6) * invR2; // 4 * N * (N-1)/2
 
-      fx += dx * f;
-      fy += dy * f;
-      fz += dz * f;
-    }
-
-    /* j > i half: identical body, different bound */
-    for (int j = i + 1; j < N; j++) {
-      const double dx = rxi - rx[j];
-      const double dy = ryi - ry[j];
-      const double dz = rzi - rz[j];
-      const double rSqd = dx * dx + dy * dy + dz * dz;
-      const double invR2 = fastReciprocal(rSqd);
-      const double sr2 = sigma2 * invR2;
-      const double sr6 = sr2 * sr2 * sr2;
-      const double sr12 = sr6 * sr6;
-      Pot += sr6 * (sr6 - 1.0);
-      const double f = 24.0 * (2.0 * sr12 - sr6) * invR2;
       fx += dx * f;
       fy += dy * f;
       fz += dz * f;
