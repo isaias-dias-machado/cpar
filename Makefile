@@ -1,6 +1,6 @@
-CC = gcc
+CC = g++
 SRC = src/
-CFLAGS = -O3 -ffast-math -fopenmp -march=native
+CFLAGS = -O3 -mcpu=a64fx -fopenmp
 
 .DEFAULT_GOAL = md
 

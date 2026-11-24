@@ -40,10 +40,13 @@
  * the simulation space) are managed by elastic walls (see supporting slides on
  * the e-Learning page)*
  */
+
+#include <arm_sve.h>
+#include <stdint.h>
+
 #include <cstdlib>
 #include <math.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <omp.h>
@@ -80,9 +83,9 @@ double a[MAXPART][3];
 //  Force
 double F[MAXPART][3];
 
-double rx[MAXPART];
-double ry[MAXPART];
-double rz[MAXPART];
+alignas(256) double rx[MAXPART];
+alignas(256) double ry[MAXPART];
+alignas(256) double rz[MAXPART];
 
 // atom type
 char atype[10];
@@ -511,8 +514,7 @@ double MeanSquaredVelocity()
 
 //  Function to calculate the kinetic energy of the system
 //  Since it's a small loop, so it's not worth parallelizing it with OpenMP
-double Kinetic()
-{
+double Kinetic() {
 
   double sum = 0.;
 
@@ -528,16 +530,18 @@ double Kinetic()
 
 /**
  * Function to calculate the potential energy of the system
- *
+ * 
  * Warning:
- *
- * The Lennard-Jones term is symmetric: V(r_ij) = V(r_ji),
- * because the distance does not depend on the order.
- * the Potential() function below visits every (i, j) with j ≠ i,
+ * 
+ * The Lennard-Jones term is symmetric: V(r_ij) = V(r_ji), 
+ * because the distance does not depend on the order. 
+ * the Potential() function below visits every (i, j) with j ≠ i, 
  * so each pair is counted twice and the total came out 2× larger.
- *
- **/
-double Potential() { return Epot; }
+ * 
+ **/ 
+double Potential() {
+  return Epot;
+}
 
 /**
  * Computes the acceleration of every particle from Lennard-Jones forces
@@ -553,71 +557,83 @@ double Potential() { return Epot; }
  * Cost: O(N^2). Reads r and N; overwrites a.
  *
  */
+// 1/d per lane to full double precision, without fdiv.
+// frecpe gives ~8 bits; each frecps step doubles it: 8 -> 16 -> 32 -> 64.
+static inline svfloat64_t recip(svbool_t pg, svfloat64_t d)
+{
+  svfloat64_t x = svrecpe_f64(d);
+  x = svmul_f64_x(pg, x, svrecps_f64(d, x));
+  x = svmul_f64_x(pg, x, svrecps_f64(d, x));
+  x = svmul_f64_x(pg, x, svrecps_f64(d, x));
+  return x;
+}
+
 void computeAccelerations()
 {
+  const double s2 = sigma * sigma;
+  const double s6 = s2 * s2 * s2;
   double Pot = 0.0;
 
-  const double sigma2 = sigma * sigma; // 1 op
-
-#pragma omp parallel for schedule(static)
-  for (int i = 0; i < N; i++) {
-    rx[i] = r[i][0];
-    ry[i] = r[i][1];
-    rz[i] = r[i][2];
-  }
-
-#pragma omp parallel for schedule(static) reduction(+ : Pot)
-  for (int i = 0; i < N; i++) {
-    const double rxi = rx[i], ryi = ry[i], rzi = rz[i];
-    double fx = 0.0, fy = 0.0, fz = 0.0;
-
-    /* j < i half */
-    for (int j = 0; j < i; j++) {
-      const double dx = rxi - rx[j];
-      const double dy = ryi - ry[j];
-      const double dz = rzi - rz[j];
-      const double rSqd = dx * dx + dy * dy + dz * dz;
-      const double invR2 = 1.0 / rSqd; // N * (N-1)/2
-
-      // Lennard-Jones potential terms
-      const double sr2 = sigma2 * invR2;
-      const double sr6 = sr2 * sr2 * sr2;
-      const double sr12 = sr6 * sr6; // 4 * N * (N-1)/2
-
-      Pot += sr6 * (sr6 - 1.0); // 3 * N * (N-1)/2
-
-      // Compute force between particles i and j
-      const double f = 24.0 * (2.0 * sr12 - sr6) * invR2; // 4 * N * (N-1)/2
-
-      fx += dx * f;
-      fy += dy * f;
-      fz += dz * f;
+#pragma omp parallel reduction(+ : Pot)
+  {
+#pragma omp for schedule(static)
+    for (int i = 0; i < N; i++) {          // AoS -> SoA copy
+      rx[i] = r[i][0];
+      ry[i] = r[i][1];
+      rz[i] = r[i][2];
     }
 
-    /* j > i half: identical body, different bound */
-    for (int j = i + 1; j < N; j++) {
-      const double dx = rxi - rx[j];
-      const double dy = ryi - ry[j];
-      const double dz = rzi - rz[j];
-      const double rSqd = dx * dx + dy * dy + dz * dz;
-      const double invR2 = 1.0 / rSqd;
-      const double sr2 = sigma2 * invR2;
-      const double sr6 = sr2 * sr2 * sr2;
-      const double sr12 = sr6 * sr6;
-      Pot += sr6 * (sr6 - 1.0);
-      const double f = 24.0 * (2.0 * sr12 - sr6) * invR2;
-      fx += dx * f;
-      fy += dy * f;
-      fz += dz * f;
+    // Each thread owns its particles: no shared writes, no buffers.
+#pragma omp for schedule(static)
+    for (int i = 0; i < N; i++) {
+      const svfloat64_t xi = svdup_f64(rx[i]);
+      const svfloat64_t yi = svdup_f64(ry[i]);
+      const svfloat64_t zi = svdup_f64(rz[i]);
+      svfloat64_t fx = svdup_f64(0.0), fy = svdup_f64(0.0);
+      svfloat64_t fz = svdup_f64(0.0), pot = svdup_f64(0.0);
+
+      // 8 values of j per iteration (512-bit vectors)
+      for (int64_t j = 0; j < N; j += svcntd()) {
+        const svbool_t pg = svwhilelt_b64(j, (int64_t)N);   // handles the tail
+
+        const svfloat64_t dx = svsub_f64_x(pg, xi, svld1_f64(pg, &rx[j]));
+        const svfloat64_t dy = svsub_f64_x(pg, yi, svld1_f64(pg, &ry[j]));
+        const svfloat64_t dz = svsub_f64_x(pg, zi, svld1_f64(pg, &rz[j]));
+
+        svfloat64_t d = svmul_f64_x(pg, dx, dx);
+        d = svmla_f64_x(pg, d, dy, dy);
+        d = svmla_f64_x(pg, d, dz, dz);
+
+        // lanes to use: inside the array AND not the particle itself (d == 0)
+        const svbool_t ok = svcmpne_n_f64(pg, d, 0.0);
+
+        const svfloat64_t inv = recip(ok, d);
+        const svfloat64_t i3  = svmul_f64_x(ok, svmul_f64_x(ok, inv, inv), inv);
+        const svfloat64_t sr6 = svmul_n_f64_x(ok, i3, s6);
+
+        // potential term: sr6 * (sr6 - 1)
+        pot = svmla_f64_m(ok, pot, sr6, svsub_n_f64_x(ok, sr6, 1.0));
+
+        // force/r (the factor 24 is applied once after the loop):
+        // sr6 * (2*sr6 - 1) * inv
+        svfloat64_t f = svmul_f64_x(ok, sr6,
+                          svsub_n_f64_x(ok, svmul_n_f64_x(ok, sr6, 2.0), 1.0));
+        f = svmul_f64_x(ok, f, inv);
+
+        fx = svmla_f64_m(ok, fx, dx, f);
+        fy = svmla_f64_m(ok, fy, dy, f);
+        fz = svmla_f64_m(ok, fz, dz, f);
+      }
+
+      const svbool_t all = svptrue_b64();
+      a[i][0] = 24.0 * svaddv_f64(all, fx);
+      a[i][1] = 24.0 * svaddv_f64(all, fy);
+      a[i][2] = 24.0 * svaddv_f64(all, fz);
+      Pot += svaddv_f64(all, pot);
     }
-
-    a[i][0] = fx;
-    a[i][1] = fy;
-    a[i][2] = fz;
   }
-
-  Epot = 4 * epsilon * Pot; // 3
-} // total flops: 33 * N*(N-1)/2 + 3N + 4
+  Epot = 4 * epsilon * Pot;   // same value your original code produced
+}
 
 /**
  *
@@ -662,20 +678,18 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
    *  1. Updates velocity with updated acceleration
    *  2. Flips velocity if particle is outside the box
    *  3. Computes pressure from wall collisions
-   *
+   * 
    * Warning:
-   *  The code below does not update the position of the particle after it
-   * collides with the wall, which means that the particle will be outside the
-   * box after the collision. This can interfere with the interactions with
-   * other particles, because the distance will be larger than it should be. A
-   * possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the
-   * collision.
+   *  The code below does not update the position of the particle after it collides with the wall,
+   *  which means that the particle will be outside the box after the collision. 
+   *  This can interfere with the interactions with other particles, because the distance will be
+   *  larger than it should be. A possible solution is to set r[i][j] = 0. or r[i][j] = -r[i][j] after the collision.
    */
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
       // Second half-kick: v += ½a·dt
       v[i][j] += 0.5 * a[i][j] * dt;
-
+      
       if (r[i][j] < 0.) {
         v[i][j] *= -1.; //- elastic walls
         psum += 2 * m * fabs(v[i][j]) /
@@ -699,8 +713,7 @@ double VelocityVerlet(double dt, int iter, FILE *fp)
   }*/
   // fprintf(fp,"\n \n");
 
-  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 =
-                             // area of a wall) * 6 walls
+  return psum / (6 * L * L); // denominator = wall collisions in a cube (L^2 = area of a wall) * 6 walls
 }
 
 void initializeVelocities()
@@ -715,9 +728,9 @@ void initializeVelocities()
   // sum(m*v[i]) ; N*m = massa total do sistema, porque cada partícula tem massa
   // m
   double vCM[3] = {0, 0, 0};
-
-  // sum(m*v[i]) / m * N = (1/N) * sum(x)
-  // -> m * sum(v[i]) / m * N
+  
+  // sum(m*v[i]) / m * N = (1/N) * sum(x) 
+  // -> m * sum(v[i]) / m * N 
   // -> sum(v[i]) / N
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
@@ -727,7 +740,7 @@ void initializeVelocities()
     }
   }
 
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < 3; i++){
     vCM[i] /= N;
   }
 
@@ -735,8 +748,7 @@ void initializeVelocities()
   //  velocity of each particle... effectively set the
   //  center of mass velocity to zero so that the system does
   //  not drift in space!
-  //  And compute the average velocity squared for the system, which is related
-  //  to the temperature of the system
+  //  And compute the average velocity squared for the system, which is related to the temperature of the system
   double vSqdSum = 0.;
   for (i = 0; i < N; i++) {
     for (j = 0; j < 3; j++) {
@@ -745,10 +757,10 @@ void initializeVelocities()
       vSqdSum += v[i][j] * v[i][j];
     }
   }
-
-  //  Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity ->
-  //  N-1) Now we want to scale the average velocity of the system by a factor
-  //  which is consistent with our initial temperature, Tinit
+  
+  //  Equipartition: KE = 3/2 (N-1) kB T  (3 DOF removed with the CM velocity -> N-1)
+  //  Now we want to scale the average velocity of the system
+  //  by a factor which is consistent with our initial temperature, Tinit
   double lambda = sqrt(3 * (N - 1) * Tinit / vSqdSum);
 
   for (i = 0; i < N; i++) {

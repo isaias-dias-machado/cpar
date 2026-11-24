@@ -20,6 +20,11 @@ echo "Loading GCC/15.2.0"
 module purge
 module load GCC/15.2.0
 
+echo
+echo "Pinning threads to nearest cores"
+echo
+export OMP_PROC_BIND=close OMP_PLACES=cores
+
 for thread in $THREADS; do 
   echo "======== Profiling for $thread threads ========"
   echo
