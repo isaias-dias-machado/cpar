@@ -15,3 +15,9 @@ perf.data*
 scorep-*/
 
 *slurm*
+
+# LaTeX build artifacts (report/latex)
+report/latex/*.aux
+report/latex/*.fdb_latexmk
+report/latex/*.fls
+report/latex/*.log

@@ -1,3 +1,10 @@
+TODO: utilizar o valor teórico na lei de amdhal para estimar o speedup.
+## principais optimizações no hot loop
+- substituir as chamadas à função de potenciação genérica pow().
+- distribuir o trabalho do cálculo das accelarações e energia potencial por threads
+- permitir vetorização ao mudar a estrutura de dados de Array of Structs para Structure of Arrays
+- eliminar as divisões envolvidas no cálculo das raizes pela multiplicação da recíproca
+
 ## computeAccelerations
 
 Pares de força calculados: N * (N-1 / 2)
