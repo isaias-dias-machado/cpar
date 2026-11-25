@@ -136,7 +136,7 @@ Com mais de 48 \textit{threads}, excede-se o número de núcleos de computação
 
 % NOVO: conclusão curta, só sintetiza afirmações já presentes no texto
 \section{Conclusão}
-Da versão sequencial de partida (\SI{3328}{s}), a combinação de transformações aritméticas (eliminação de \texttt{pow}, recíproca por Newton--Raphson), reestruturação SoA e paralelização OpenMP segundo a alternativa~B reduziu a simulação para \SI{0.608}{s} com 48 \textit{threads} ($\approx5470\times$), sem alteração dos resultados numéricos. O modelo roofline mostra que o kernel está hoje limitado pela banda de memória ao nível do CMG (72\,\% do teto de um banco), e não pela computação, apontando a localidade NUMA e a metade dos pares (alternativa~A) como trabalho futuro imediato.
+Da versão sequencial de partida (\SI{3328}{s}), as transformações aritméticas (eliminação de \texttt{pow}, recíproca por Newton--Raphson), a reestruturação SoA e a paralelização OpenMP (alternativa~B) reduziram a simulação para \SI{0.608}{s} com 48 \textit{threads} ($\approx5470\times$), sem alterar os resultados numéricos. O roofline mostra o kernel limitado pela banda de memória ao nível do CMG (72\,\% do teto de um banco), apontando a localidade NUMA e a metade dos pares (alternativa~A) como trabalho futuro.
 
 % NOVO: anexos não contam para o limite de 2 páginas (WA1 p.1
 % "annexes excluded but may be read") - tabela e figura movidas para aqui
@@ -182,11 +182,12 @@ Da versão sequencial de partida (\SI{3328}{s}), a combinação de transformaç�
 \caption{Speedup da versão final em função do número de \textit{threads}.}\label{fig:speedup}
 \end{figure}
 
-\begin{figure}[h]
+\clearpage
+\begin{figure*}[t]
 \centering
-\includegraphics[width=0.85\columnwidth]{dependency_diagram.png}
+\includegraphics[height=0.85\textheight, keepaspectratio]{dependency_diagram.png}
 \caption{Diagrama de dependências de dados da versão original (\texttt{baseline.cpp}): prólogo e uma iteração do ciclo principal.}
 \label{fig:deps}
-\end{figure}
+\end{figure*}
 
 \end{document}
