@@ -97,7 +97,7 @@ Após a simplificação anterior, resta uma divisão por par, $1/r^2$. Em ponto 
 O custo é de algumas operações multiplicativas por par, que fazem \textit{pipeline} e vetorizam bem. A função é pura (sem estado), logo segura em regiões paralelas. Só é válida para $x>0$ normal, o que se verifica aqui, pois $r^2$ é sempre positivo e da ordem de $1$ a $L^2$.
 
 \subsection{Oportunidades de paralelismo}
-Em \texttt{computeAccelerations}, cada iteração do laço em $i$ é independente das restantes. Foram consideradas duas alternativas (Tabela~\ref{tab:alt}).
+O diagrama de dependências da Figura~\ref{fig:deps} (anexo) mostra que \texttt{computeAccelerations} lê apenas \texttt{r} e escreve apenas \texttt{a}: cada iteração do laço em $i$ é independente das restantes. Foram consideradas duas alternativas (Tabela~\ref{tab:alt}).
 
 \begin{table}[h]
 \centering\small
@@ -114,7 +114,7 @@ Trabalho por iteração de $i$ & $N{-}1{-}i$ (decrescente) & $N{-}1$ (constante)
 \end{tabular}
 \end{table}
 
-\noindent Escolheu-se a alternativa~B: cada \textit{thread} escreve apenas as suas linhas de \texttt{a} (sem corridas) e a energia potencial é calculada no mesmo laço, através de \texttt{reduction(+:Pot)}, o que \textbf{elimina a segunda computação} de \texttt{Potential}. Como o trabalho por $i$ é constante ($N{-}1$), o \texttt{schedule(static)} balanceia a carga; em~A, o laço triangular ($N{-}1{-}i$) exigiria \texttt{schedule(dynamic)} e manteria as corridas em \texttt{a[j]}. As posições são copiadas para \texttt{rx, ry, rz} (SoA) para acessos contíguos e vetorização (SVE).
+\noindent Escolheu-se a alternativa~B: cada \textit{thread} escreve apenas as suas linhas de \texttt{a} (sem corridas) e a energia potencial é calculada no mesmo laço, através de \texttt{reduction(+:Pot)} --- a única escrita partilhada do diagrama ---, o que \textbf{elimina a segunda computação} de \texttt{Potential} (a segunda leitura de \texttt{r} no diagrama). Como o trabalho por $i$ é constante ($N{-}1$), o \texttt{schedule(static)} balanceia a carga; em~A, o laço triangular ($N{-}1{-}i$) exigiria \texttt{schedule(dynamic)} e manteria as corridas em \texttt{a[j]}. As posições são copiadas para \texttt{rx, ry, rz} (SoA) para acessos contíguos e vetorização (SVE).
 
 % NOVO: limite teórico (roofline); valores validados em analysis-refinement.md
 \subsection{Limite teórico (roofline)}\label{ROOF}
@@ -180,6 +180,13 @@ Da versão sequencial de partida (\SI{3328}{s}), a combinação de transformaç�
 \end{axis}
 \end{tikzpicture}
 \caption{Speedup da versão final em função do número de \textit{threads}.}\label{fig:speedup}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\columnwidth]{dependency_diagram.png}
+\caption{Diagrama de dependências de dados da versão original (\texttt{baseline.cpp}): prólogo e uma iteração do ciclo principal.}
+\label{fig:deps}
 \end{figure}
 
 \end{document}
