@@ -109,12 +109,12 @@ Em \texttt{computeAccelerations}, cada iteração do laço em $i$ é independent
 Operações & $N(N-1)/2$ pares & $N(N-1)$ pares ($2\times$) \\
 Escritas (3.ª lei) & \texttt{a[i]} e \texttt{a[j]} & só \texttt{a[i]} \\
 Sincronização & \texttt{atomic} ou \textit{reduce} & nenhuma \\
-\textit{Load balance} & \texttt{dynamic} & \texttt{static} \\
+Trabalho por iteração de $i$ & $N{-}1{-}i$ (decrescente) & $N{-}1$ (constante) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent Escolheu-se a alternativa~B. Apesar de duplicar as operações, elimina condições de corrida e sincronização, e o ganho é superior ao da alternativa A. Cada \textit{thread} escreve apenas as suas linhas de \texttt{a}, e a energia potencial é calculada no mesmo laço, através de \texttt{reduction(+:Pot)}, o que \textbf{elimina a segunda computação} de \texttt{Potential}. As posições são copiadas para vetores \texttt{rx, ry, rz} (SoA) para acessos contíguos e vetorização (SVE).
+\noindent Escolheu-se a alternativa~B: cada \textit{thread} escreve apenas as suas linhas de \texttt{a} (sem corridas) e a energia potencial é calculada no mesmo laço, através de \texttt{reduction(+:Pot)}, o que \textbf{elimina a segunda computação} de \texttt{Potential}. Como o trabalho por $i$ é constante ($N{-}1$), o \texttt{schedule(static)} balanceia a carga; em~A, o laço triangular ($N{-}1{-}i$) exigiria \texttt{schedule(dynamic)} e manteria as corridas em \texttt{a[j]}. As posições são copiadas para \texttt{rx, ry, rz} (SoA) para acessos contíguos e vetorização (SVE).
 
 % NOVO: limite teórico (roofline); valores validados em analysis-refinement.md
 \subsection{Limite teórico (roofline)}\label{ROOF}
