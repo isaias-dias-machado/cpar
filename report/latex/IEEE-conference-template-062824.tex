@@ -41,9 +41,9 @@ advanced computing, parallelism, molecular dynamics, OpenMP, SVE
 
 \section{Introdução}\label{INT}
 
-Simulações de dinâmica molecular (MD) permitem estudar o comportamento macroscópico de fluidos a partir da evolução temporal das trajetórias individuais de $N$ partículas interagentes. O caso de estudo baseia-se na implementação sequencial do \textit{FoleyLab} em C++, aplicada ao gás nobre Árgon com $N = 5000$ átomos ao longo de 200 passos temporais (\texttt{NumTime}).
+Este relatório responde ao Work Assignment 1 (fase 1) da unidade curricular de Computação Paralela: paralelizar com OpenMP o código de dinâmica molecular do \textit{FoleyLab} --- gás Árgon, $N = 5000$ átomos, 200 passos temporais (\texttt{NumTime}) --- e medir o desempenho nos nós ARM (Fujitsu A64FX) do Deucalion. Segue-se a metodologia do enunciado: (i) perfilar os hot-spots; (ii) levantar alternativas de paralelismo; (iii) escolher a abordagem justificada por uma análise de escalabilidade; (iv) implementar e otimizar no Deucalion; (v) medir e discutir os resultados.
 
-Como cada partícula interage com as restantes $N-1$ a cada passo, o problema tem complexidade $O(N^2)$, o que torna a execução sequencial proibitiva à medida que $N$ cresce. Este trabalho caracteriza os pontos críticos da versão original, analisa as oportunidades de paralelismo e de otimização aritmética, e valida uma implementação OpenMP otimizada para os nós ARM (Fujitsu A64FX) do supercomputador Deucalion. A versão final reduz o tempo de \SI{3328}{s} para \SI{23.7}{s} num único \textit{thread} ($\approx 141\times$) e para \SI{0.60}{s} com 48 \textit{threads} ($\approx 5470\times$ face ao original).
+O problema é $O(N^2)$: cada partícula interage com as restantes $N-1$ a cada passo, o que torna a execução sequencial proibitiva à medida que $N$ cresce. A versão final reduz o tempo de \SI{3328}{s} para \SI{23.7}{s} num único \textit{thread} ($\approx 141\times$) e para \SI{0.60}{s} com 48 \textit{threads} ($\approx 5470\times$ face ao original).
 
 \section{Gargalos da Aplicação}\label{GAR}
 
