@@ -1,6 +1,5 @@
 \documentclass[conference]{IEEEtran}
-\IEEEoverridecommandlockouts
-% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+% \IEEEoverridecommandlockouts % only needed for a funding footnote; none here
 %Template version as of 6/27/2024
 
 \usepackage{cite}
@@ -13,8 +12,6 @@
 \usepackage{booktabs, amsmath, pgfplots}
 \pgfplotsset{compat=1.16}
 
-\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
-    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
 \title{\textit{Computação Paralela - Work Assignment - Part I}}
@@ -39,12 +36,8 @@ Este estudo analisa o código de dinâmica molecular desenvolvido pelo FoleyLab 
 \end{abstract}
 
 \begin{IEEEkeywords}
-Advanced Computing, Parallelism, Molecular Dynamics, OpenMP, SVE
+advanced computing, parallelism, molecular dynamics, OpenMP, SVE
 \end{IEEEkeywords}
-
-% Pacotes necessários no preâmbulo:
-% \usepackage{booktabs, amsmath, pgfplots}
-% \pgfplotsset{compat=1.16}
 
 \section{Introdução}\label{INT}
 
@@ -54,19 +47,19 @@ Como cada partícula interage com as restantes $N-1$ a cada passo, o problema te
 
 \section{Gargalos da Aplicação}\label{GAR}
 
-O perfil do programa mostra uma aplicação limitada pela \textbf{computação} e não pela memória: a taxa de falhas na L1 é de 0,10\,\% e o IPC de 0,68, o que é compatível com código dominado por operações de latência elevada (divisão e raiz quadrada, não totalmente \textit{pipelined}). O perfil (\texttt{perf}, \texttt{cycles:u}, Tabela~\ref{tab:perfil}) mostra que duas funções $O(N^2)$ ocupam 99,5\,\% dos ciclos.
+O perfil do programa mostra uma aplicação limitada pela \textbf{computação} e não pela memória: a taxa de falhas na L1 é de 0,10\,\% e o IPC de 0,68, o que é compatível com código dominado por operações de latência elevada (divisão e raiz quadrada, não totalmente \textit{pipelined}). O perfil (\texttt{perf}, \texttt{cycles:u}, Tabela~\ref{tab:perfil}) mostra que duas funções $O(N^2)$ ocupam 99,4\,\% dos ciclos.
 
 \begin{table}[t]
 \centering\footnotesize
 \setlength{\tabcolsep}{4pt}
 \caption{Perfil da versão original.}\label{tab:perfil}
-\begin{tabular}{@{}lccc@{}}
+\begin{tabular}{@{}llc@{}}
 \toprule
-\textbf{Função} & \textbf{Ciclos} & \textbf{Pares/passo} & \textbf{Custo/par} \\
+\textbf{Função} & \textbf{Ciclos} & \textbf{Pares/passo} \\
 \midrule
-\texttt{Potential}     & 66,2\,\% & $N(N{-}1)$ & $2{,}0\times$ \\
-\texttt{computeAccel.} & 33,2\,\% & $N(N{-}1)$ & $1{,}0\times$ \\
-Restante               & $<0{,}6\,\%$ & --- & --- \\
+\texttt{Potential}     & 66,2\,\% & $N(N{-}1)$ \\
+\texttt{computeAccel.} & 33,2\,\% & $N(N{-}1)/2$ \\
+Restante               & $<0{,}6\,\%$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -78,14 +71,17 @@ Dentre as fontes de trabalho desnecessário, há:
   \item \textbf{Operações caras em laço interno (j):} potências por \texttt{pow} com expoentes inteiros fixos, mais \texttt{sqrt} e divisões em \texttt{Potential}.
 \end{itemize}
 
-\noindent Por contagem, o \texttt{pow} é computado $2N(N{-}1)$ em cada função: \texttt{Potential()} e  \texttt{computeAccelerations()}, totalizando cerca de $\approx2\times10^{10}$ chamadas em todo o programa. Os restantes cálculos (\texttt{Kinetic}, integração) são $O(N)$ e desprezáveis.
+\noindent Por contagem, por passo: \texttt{Potential()} chama \texttt{pow} $2N(N{-}1)$ vezes (2 por par ordenado $j\neq i$) e \texttt{computeAccelerations()} chama $N(N{-}1)$ vezes (2 por par distinto $i<j$) --- $\approx3N(N{-}1)$ chamadas por passo, $\approx1{,}5\times10^{10}$ em toda a simulação. Os restantes cálculos (\texttt{Kinetic}, integração) são $O(N)$ e desprezáveis.
 
 \subsection{Análise e Alternativas}\label{AA}
 
 \paragraph{Potências $\to$ multiplicações}
-Como $\sigma=\epsilon=1$ e os expoentes são inteiros fixos, os termos de Lennard-Jones obtêm-se a partir de $s=\sigma^2/r^2$:
+Como $\sigma=\epsilon=1$ e os expoentes são inteiros fixos, os termos de Lennard-Jones obtêm-se a partir de $s_2=\sigma^2/r^2$:
 \begin{equation}
-s_6 = s_2^3,\quad s_{12}=s_6^2,\quad V = 4\epsilon\, s_6(s_6-1),\quad \frac{\mathbf F}{\mathbf r}=\frac{24(2s_{12}-s_6)}{r^2}.
+s_6 = s_2^3,\quad s_{12}=s_6^2,
+\end{equation}
+\begin{equation}
+V = 4\epsilon\, s_6(s_6-1),\quad \frac{F}{r}=\frac{24(2s_{12}-s_6)}{r^2}.
 \end{equation}
 Com \texttt{-O3 -ffast-math} o compilador já expande cada \texttt{pow} do original, mas fá-lo de forma isolada: cada chamada gera a sua própria cadeia de multiplicações e uma divisão, sem partilhar termos entre as duas potências, entre o potencial e a força, nem entre as duas funções. A formulação explícita calcula $1/r^2$ uma só vez por par, obtém $s_6$ e $s_{12}$ com 3 multiplicações, reutiliza-os no potencial e na força, e dispensa o \texttt{sqrt} de \texttt{Potential}. Por par, isto reduz as divisões de várias para uma e encurta o caminho crítico de operações de latência elevada, que dominam o tempo.
 
@@ -124,13 +120,15 @@ Sincronização & \texttt{atomic} ou \textit{reduce} & nenhuma \\
 \subsection{Limite teórico (roofline)}\label{ROOF}
 Cada chamada de \texttt{computeAccelerations} avalia $N(N{-}1)\approx25\times10^{6}$ pares, a 37 flop e 24 B lidos da DRAM por par (3 posições em \texttt{double}); ao longo das 201 iterações do laço, são $185{,}9$ GFlop sobre $121$ GB, ou seja, uma intensidade aritmética $\textit{AI}=37/24\approx1{,}54$ flop/B. Assumindo 512 bits SVE, 2 pipes e FMA a 2 GHz, o pico computacional dos 48 núcleos é $48\times32\times2\,\text{GHz}\approx3{,}1$ TFlop/s e a banda HBM2 anunciada é $\approx1{,}1$ TB/s agregados ($275$ GB/s por banco, um por CMG). O kernel é limitado pela memória em ambos os cenários:
 \begin{equation}\label{eq:roof}
-\text{roof}_{4\,\text{bancos}}=\tfrac{37}{24}\times1{,}1\,\text{TB/s}=1{,}70\ \text{TFlop/s},\qquad
+\text{roof}_{4\,\text{bancos}}=\tfrac{37}{24}\times1{,}1\,\text{TB/s}=1{,}70\ \text{TFlop/s},
+\end{equation}
+\begin{equation}\label{eq:roof1}
 \text{roof}_{1\,\text{banco}}=\tfrac{37}{24}\times275\,\text{GB/s}=424\ \text{GFlop/s}.
 \end{equation}
 Os limites inferiores de tempo são $185{,}9/1696\approx\SI{0.11}{s}$ (4 bancos) e $185{,}9/424\approx\SI{0.44}{s}$ (1 banco, cenário realista de má localização NUMA); com o trabalho estritamente necessário, $N(N{-}1)/2$ pares, os floors caem a metade. Notar que estes floors assumem que não há reutilização de cache nas posições $j$, sendo portanto conservadores.
 
 \section{Resultados}
-A Tabela~\ref{tab:escala} e a Figura~\ref{fig:speedup}, no anexo, resumem os resultados. O resultado numérico (\texttt{-43214.91285865}) é idêntico para todos os números de \textit{threads} e está dentro do intervalo de erro admitido (variação da última casa decimal). O ganho sequencial, de \SI{3328}{s} para \SI{23.7}{s}, deve-se à eliminação da cadeia \texttt{pow}, da divisão, da computação duplicada de \texttt{Potential} e da chamada redundante. O escalonamento é quase linear até 24 \textit{threads} ($\ge 90\,\%$ de eficiência) e a eficiência decresce de forma gradual até 48 \textit{threads} ($81\,\%$). Um ajuste da lei de Amdahl indica uma fração sequencial efetiva de $\approx 0{,}5\,\%$.
+Compilado com GCC 15.2.0 (build graduado) num nó ARM (A64FX) do Deucalion, com as flags do Makefile (\texttt{-O3 -ffast-math -fopenmp -march=native}). A Tabela~\ref{tab:escala} e a Figura~\ref{fig:speedup}, no anexo, resumem os resultados. O resultado numérico (\texttt{-43214.91285865}) é idêntico para todos os números de \textit{threads} e está dentro do intervalo de erro admitido (variação da última casa decimal). O ganho sequencial, de \SI{3328}{s} para \SI{23.7}{s}, deve-se à eliminação da cadeia \texttt{pow}, da divisão, da computação duplicada de \texttt{Potential} e da chamada redundante. O escalonamento é quase linear até 24 \textit{threads} ($\ge 90\,\%$ de eficiência) e a eficiência decresce de forma gradual até 48 \textit{threads} ($81\,\%$). Um ajuste da lei de Amdahl indica uma fração sequencial efetiva de $\approx 0{,}5\,\%$.
 % NOVO: comparação com o roofline teórico
 Face ao roofline (secção~\ref{ROOF}), os \SI{0.608}{s} a 48 \textit{threads} correspondem a um débito de $\approx306$ GFlop/s: $72\,\%$ do teto de um banco e $18\,\%$ do teto agregado. O kernel está portanto mais próximo do teto de banda de memória de um único CMG do que do limite computacional, o que identifica a banda de memória como o próximo gargalo.
 % NOVO: hipótese spin-wait para a degradação acima de 48 threads
@@ -147,6 +145,7 @@ Da versão sequencial de partida (\SI{3328}{s}), a combinação de transformaç�
 
 \begin{table}[h]
 \centering\small
+\setlength{\tabcolsep}{3.5pt}
 \caption{Escalabilidade da versão final (speedup relativo a 1 \textit{thread}).}\label{tab:escala}
 \begin{tabular}{rrrrrr}
 \toprule
@@ -156,10 +155,13 @@ Da versão sequencial de partida (\SI{3328}{s}), a combinação de transformaç�
 2  & 11,909 & 1,99  & 99\,\%  & 0,63 & 3,01 \\
 4  & 6,012  & 3,94  & 98\,\%  & 0,64 & 3,05 \\
 8  & 3,053  & 7,75  & 97\,\%  & 0,65 & 3,11 \\
+12 & 2,083  & 11,36 & 95\,\%  & --- & --- \\
 16 & 1,592  & 14,87 & 93\,\%  & 0,68 & 3,31 \\
+24 & 1,091  & 21,70 & 90\,\%  & --- & --- \\
 32 & 0,848  & 27,91 & 87\,\%  & 0,72 & 3,56 \\
 \textbf{48} & \textbf{0,608} & \textbf{38,91} & \textbf{81\,\%} & \textbf{0,77} & \textbf{3,94} \\
 54 & 1,106  & 21,40 & 40\,\%  & 0,62 & 3,07 \\
+60 & 1,043  & 22,69 & 38\,\%  & --- & --- \\
 72 & 0,927  & 25,53 & 35\,\%  & 0,62 & 3,08 \\
 \bottomrule
 \end{tabular}
